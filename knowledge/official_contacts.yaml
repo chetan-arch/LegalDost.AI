@@ -1,0 +1,24 @@
+# Official help channels shown by the assistant. Only add an entry after confirming it on the
+# official website listed in `verify_at`. `last_checked` must be updated on every review.
+# These entries are NOT yet confirmed by a reviewer for this deployment (review_status).
+
+review_status: unreviewed
+
+contacts:
+  emergency:
+    name: {en: "Emergency Response Support System", kn: "ತುರ್ತು ಪ್ರತಿಕ್ರಿಯೆ ಬೆಂಬಲ ವ್ಯವಸ್ಥೆ"}
+    phone: "112"
+    verify_at: "https://112.gov.in"
+    last_checked: null
+  cybercrime:
+    name: {en: "National Cyber Crime Reporting Portal / helpline", kn: "ರಾಷ್ಟ್ರೀಯ ಸೈಬರ್ ಅಪರಾಧ ವರದಿ ಪೋರ್ಟಲ್ / ಸಹಾಯವಾಣಿ"}
+    phone: "1930"
+    url: "https://cybercrime.gov.in"
+    verify_at: "https://cybercrime.gov.in"
+    last_checked: null
+  legal_aid:
+    name: {en: "National Legal Services Authority (free legal aid)", kn: "ರಾಷ್ಟ್ರೀಯ ಕಾನೂನು ಸೇವೆಗಳ ಪ್ರಾಧಿಕಾರ (ಉಚಿತ ಕಾನೂನು ನೆರವು)"}
+    phone: "15100"
+    url: "https://nalsa.gov.in"
+    verify_at: "https://nalsa.gov.in"
+    last_checked: null

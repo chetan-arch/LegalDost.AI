@@ -1,0 +1,290 @@
+# Topic and fact registry.
+#
+# This file is PRODUCT CONFIGURATION, not law. It decides:
+#   * which legal areas the assistant recognises,
+#   * which facts are material enough to ask about before answering,
+#   * which extra search terms help retrieval find the right passages,
+#   * which topics are high-risk (always recommend a lawyer).
+# It never states a legal conclusion. Every entry should be reviewed by an Indian advocate
+# (see review_status). Kannada strings need native-speaker review.
+
+review_status: unreviewed
+
+domains:
+  # A domain is offered to users only when (a) enabled here AND (b) at least one current,
+  # available source tagged with that domain is loaded in the database. Loading sources is
+  # what expands coverage; no code change is needed. Set enabled: false to switch one off.
+  traffic:        {enabled: true, label: {en: "Traffic and vehicles", kn: "ಸಂಚಾರ ಮತ್ತು ವಾಹನಗಳು"}}
+  criminal:       {enabled: true, label: {en: "Criminal law", kn: "ಅಪರಾಧ ಕಾನೂನು"}}
+  police:         {enabled: true, label: {en: "Police procedure", kn: "ಪೊಲೀಸ್ ಕಾರ್ಯವಿಧಾನ"}}
+  constitutional: {enabled: true, label: {en: "Constitutional and fundamental rights", kn: "ಸಾಂವಿಧಾನಿಕ ಮತ್ತು ಮೂಲಭೂತ ಹಕ್ಕುಗಳು"}}
+  consumer:       {enabled: true, label: {en: "Consumer complaints", kn: "ಗ್ರಾಹಕ ದೂರುಗಳು"}}
+  tenancy:        {enabled: true, label: {en: "Rent and tenancy", kn: "ಬಾಡಿಗೆ ಮತ್ತು ಗುತ್ತಿಗೆ"}}
+  property:       {enabled: true, label: {en: "Land and property", kn: "ಭೂಮಿ ಮತ್ತು ಆಸ್ತಿ"}}
+  family:         {enabled: true, label: {en: "Family law", kn: "ಕೌಟುಂಬಿಕ ಕಾನೂನು"}}
+  employment:     {enabled: true, label: {en: "Employment and labour", kn: "ಉದ್ಯೋಗ ಮತ್ತು ಕಾರ್ಮಿಕ"}}
+  cyber:          {enabled: true, label: {en: "Cybercrime and online fraud", kn: "ಸೈಬರ್ ಅಪರಾಧ ಮತ್ತು ಆನ್‌ಲೈನ್ ವಂಚನೆ"}}
+  government:     {enabled: true, label: {en: "Government services and RTI", kn: "ಸರ್ಕಾರಿ ಸೇವೆಗಳು ಮತ್ತು ಮಾಹಿತಿ ಹಕ್ಕು"}}
+  banking:        {enabled: true, label: {en: "Banking, loans and cheques", kn: "ಬ್ಯಾಂಕಿಂಗ್, ಸಾಲ ಮತ್ತು ಚೆಕ್"}}
+  general:        {enabled: true, label: {en: "Other legal questions", kn: "ಇತರ ಕಾನೂನು ಪ್ರಶ್ನೆಗಳು"}}
+
+facts:
+  jurisdiction:
+    kind: jurisdiction
+    question:
+      en: "Which Indian state did this happen in (for example, Karnataka)?"
+      kn: "ಇದು ಭಾರತದ ಯಾವ ರಾಜ್ಯದಲ್ಲಿ ನಡೆಯಿತು (ಉದಾಹರಣೆಗೆ, ಕರ್ನಾಟಕ)?"
+  glazing_type:
+    kind: enum
+    question:
+      en: "Is the tint part of the glass as fitted by the vehicle manufacturer, or is it a film/sticker added to the glass later?"
+      kn: "ಟಿಂಟ್ ವಾಹನ ತಯಾರಕರು ಅಳವಡಿಸಿದ ಗಾಜಿನ ಭಾಗವೇ, ಅಥವಾ ನಂತರ ಗಾಜಿಗೆ ಅಂಟಿಸಿದ ಫಿಲ್ಮ್/ಸ್ಟಿಕರ್ ಆಗಿದೆಯೇ?"
+    values:
+      factory_fitted:
+        en: ["factory", "manufacturer", "came with the car", "came with the vehicle", "company fitted", "company-fitted", "oem", "original glass", "built-in", "built in"]
+        kn: ["ಕಂಪನಿ", "ತಯಾರಕ", "ಫ್ಯಾಕ್ಟರಿ", "ಮೂಲ ಗಾಜು"]
+      aftermarket_film:
+        en: ["film", "sticker", "aftermarket", "after-market", "added later", "pasted", "stuck on", "applied later", "wrap"]
+        kn: ["ಫಿಲ್ಮ್", "ಸ್ಟಿಕರ್", "ಅಂಟಿಸಿದ", "ನಂತರ ಹಾಕಿದ"]
+      unsure:
+        en: ["not sure", "don't know", "dont know", "no idea", "unsure"]
+        kn: ["ಗೊತ್ತಿಲ್ಲ", "ಖಚಿತವಿಲ್ಲ"]
+  vlt_percent:
+    kind: percent
+    question:
+      en: "Do you know the light transmission (VLT) percentage of the glass?"
+      kn: "ಗಾಜಿನ ಬೆಳಕು ಹಾದುಹೋಗುವ (VLT) ಶೇಕಡಾವಾರು ನಿಮಗೆ ತಿಳಿದಿದೆಯೇ?"
+  challan_issued:
+    kind: yes_no
+    question:
+      en: "Have you been given a challan or written notice? If yes, which section or rule does it mention?"
+      kn: "ನಿಮಗೆ ಚಲನ್ ಅಥವಾ ಲಿಖಿತ ನೋಟಿಸ್ ನೀಡಲಾಗಿದೆಯೇ? ಹೌದಾದರೆ, ಅದರಲ್ಲಿ ಯಾವ ಸೆಕ್ಷನ್ ಅಥವಾ ನಿಯಮ ಉಲ್ಲೇಖಿಸಲಾಗಿದೆ?"
+    values:
+      "yes":
+        en: ["challan issued", "got a challan", "gave me a challan", "received a challan", "fined", "e-challan", "notice issued", "got a notice", "was issued"]
+        kn: ["ಚಲನ್ ಕೊಟ್ಟರು", "ದಂಡ ಹಾಕಿದರು", "ನೋಟಿಸ್ ಬಂತು"]
+      "no":
+        en: ["no challan", "not issued", "no notice", "only warned", "nothing issued"]
+        kn: ["ಚಲನ್ ಇಲ್ಲ", "ನೋಟಿಸ್ ಇಲ್ಲ"]
+  cited_provision:
+    kind: provision
+    question:
+      en: "Which section or rule is written on the challan or notice?"
+      kn: "ಚಲನ್ ಅಥವಾ ನೋಟಿಸ್‌ನಲ್ಲಿ ಯಾವ ಸೆಕ್ಷನ್ ಅಥವಾ ನಿಯಮ ಬರೆಯಲಾಗಿದೆ?"
+  incident_date:
+    kind: date
+    question:
+      en: "When did this happen (approximate date is fine)? The law that applies can depend on the date."
+      kn: "ಇದು ಯಾವಾಗ ನಡೆಯಿತು (ಅಂದಾಜು ದಿನಾಂಕ ಸಾಕು)? ಅನ್ವಯವಾಗುವ ಕಾನೂನು ದಿನಾಂಕದ ಮೇಲೆ ಅವಲಂಬಿತವಾಗಿರಬಹುದು."
+
+topics:
+  # ---- traffic ---------------------------------------------------------------------------
+  traffic.tinted_glass:
+    domain: traffic
+    label: {en: "Tinted glass / window film", kn: "ಟಿಂಟ್ ಗಾಜು / ಕಿಟಕಿ ಫಿಲ್ಮ್"}
+    keywords:
+      en: ["tint", "tinted", "film", "sun film", "sunfilm", "black film", "window film", "vlt", "visual transmission", "light transmission", "dark glass", "safety glazing", "cooling film"]
+      kn: ["ಟಿಂಟ್", "ಫಿಲ್ಮ್", "ಕಪ್ಪು ಗಾಜು", "ಕಪ್ಪು ಫಿಲ್ಮ್", "ಸನ್ ಫಿಲ್ಮ್"]
+    retrieval_terms: ["visual transmission of light", "safety glass", "safety glazing", "windscreen", "side windows", "film", "tinted"]
+    required_facts: [jurisdiction, glazing_type]
+    optional_facts: [vlt_percent, challan_issued, cited_provision, incident_date]
+    date_sensitive: true
+  traffic.challan:
+    domain: traffic
+    label: {en: "Traffic challan / fine", kn: "ಸಂಚಾರ ಚಲನ್ / ದಂಡ"}
+    keywords:
+      # Generic words like "fined" are deliberately absent: "can I be fined for X" belongs to topic X.
+      en: ["challan", "e-challan", "traffic fine", "compound", "spot fine"]
+      kn: ["ಚಲನ್", "ದಂಡ", "ಟ್ರಾಫಿಕ್ ದಂಡ"]
+    retrieval_terms: ["penalty", "offence", "fine", "compounding"]
+    required_facts: [jurisdiction, cited_provision]
+    optional_facts: [incident_date]
+    date_sensitive: true
+  traffic.documents:
+    domain: traffic
+    label: {en: "Driving licence and vehicle documents", kn: "ಚಾಲನಾ ಪರವಾನಗಿ ಮತ್ತು ವಾಹನ ದಾಖಲೆಗಳು"}
+    keywords:
+      en: ["driving licence", "driving license", "licence", "license", "registration certificate", "rc book", "insurance", "puc", "pollution certificate", "digilocker", "mparivahan"]
+      kn: ["ಡ್ರೈವಿಂಗ್ ಲೈಸೆನ್ಸ್", "ಪರವಾನಗಿ", "ವಿಮೆ", "ಆರ್‌ಸಿ"]
+    retrieval_terms: ["driving licence", "certificate of registration", "insurance", "produce"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+    date_sensitive: true
+  traffic.general:
+    domain: traffic
+    label: {en: "Traffic and vehicle rules", kn: "ಸಂಚಾರ ಮತ್ತು ವಾಹನ ನಿಯಮಗಳು"}
+    keywords:
+      en: ["traffic", "motor vehicle", "motor vehicles act", "cmvr", "helmet", "seat belt", "speeding", "signal", "parking", "vehicle", "rto", "police stopped", "traffic police", "number plate", "drunk driving", "drink and drive", "fitness certificate", "driving", "overspeeding", "over speeding", "speed limit", "car", "bike", "motorcycle", "motor cycle", "scooter", "two-wheeler", "two wheeler", "minor", "underage", "triple riding", "seat belt", "seatbelt", "mobile phone while driving", "accident", "hit and run", "pillion"]
+      kn: ["ಸಂಚಾರ", "ವಾಹನ", "ಹೆಲ್ಮೆಟ್", "ಸೀಟ್ ಬೆಲ್ಟ್", "ಟ್ರಾಫಿಕ್ ಪೊಲೀಸ್"]
+    retrieval_terms: []
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+    date_sensitive: true
+
+  # ---- criminal & police (risk: high -> always recommends a lawyer) --------------------
+  criminal.offence:
+    domain: criminal
+    label: {en: "Criminal offences and complaints", kn: "ಅಪರಾಧಗಳು ಮತ್ತು ದೂರುಗಳು"}
+    keywords:
+      en: ["crime", "criminal", "offence", "offense", "theft", "stolen", "robbery", "cheating", "cheated", "assault", "threat", "threatened", "defamation", "ipc", "bns", "bharatiya nyaya sanhita", "indian penal code", "punishment", "bailable", "non-bailable", "dowry"]
+      kn: ["ಅಪರಾಧ", "ಕಳ್ಳತನ", "ವಂಚನೆ", "ಬೆದರಿಕೆ", "ವರದಕ್ಷಿಣೆ", "ಶಿಕ್ಷೆ"]
+    retrieval_terms: ["offence", "punishment", "imprisonment", "fine"]
+    required_facts: [jurisdiction, incident_date]
+    optional_facts: [cited_provision]
+    date_sensitive: true
+    risk: high
+  police.procedure:
+    domain: police
+    label: {en: "Police procedure and citizens' rights", kn: "ಪೊಲೀಸ್ ಕಾರ್ಯವಿಧಾನ ಮತ್ತು ನಾಗರಿಕ ಹಕ್ಕುಗಳು"}
+    keywords:
+      en: ["fir", "zero fir", "first information report", "complaint to police", "police station", "police refused", "police notice", "summons", "bnss", "crpc", "bharatiya nagarik suraksha sanhita", "rights when arrested", "police custody"]
+      kn: ["ಎಫ್‌ಐಆರ್", "ಪೊಲೀಸ್ ಠಾಣೆ", "ಪೊಲೀಸ್ ದೂರು"]
+    retrieval_terms: ["police officer", "information", "complaint"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date, cited_provision]
+    date_sensitive: true
+    risk: high
+
+  # ---- constitutional --------------------------------------------------------------------
+  constitutional.rights:
+    domain: constitutional
+    label: {en: "Fundamental rights and the Constitution", kn: "ಮೂಲಭೂತ ಹಕ್ಕುಗಳು ಮತ್ತು ಸಂವಿಧಾನ"}
+    keywords:
+      en: ["fundamental right", "fundamental rights", "constitution", "article 14", "article 19", "article 21", "article 32", "article 226", "writ", "freedom of speech", "right to equality", "right to life", "discrimination"]
+      kn: ["ಮೂಲಭೂತ ಹಕ್ಕು", "ಸಂವಿಧಾನ"]
+    retrieval_terms: ["article", "right", "state"]
+    required_facts: []
+    optional_facts: [jurisdiction]
+
+  # ---- consumer --------------------------------------------------------------------------
+  consumer.refund:
+    domain: consumer
+    label: {en: "Refunds, defective goods and poor service", kn: "ಮರುಪಾವತಿ, ದೋಷಪೂರಿತ ವಸ್ತುಗಳು ಮತ್ತು ಕಳಪೆ ಸೇವೆ"}
+    keywords:
+      en: ["refund", "defective", "consumer", "warranty", "guarantee", "shop refused", "replacement", "consumer forum", "consumer commission", "deficiency in service", "overcharged", "mrp", "online order", "not delivered", "e-commerce"]
+      kn: ["ಮರುಪಾವತಿ", "ಗ್ರಾಹಕ", "ದೋಷಪೂರಿತ", "ಖಾತರಿ"]
+    retrieval_terms: ["consumer", "defect", "deficiency", "complaint", "unfair trade practice"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+    date_sensitive: true
+
+  # ---- tenancy & property ----------------------------------------------------------------
+  tenancy.dispute:
+    domain: tenancy
+    label: {en: "Rent and landlord disputes", kn: "ಬಾಡಿಗೆ ವಿವಾದಗಳು"}
+    keywords:
+      en: ["landlord", "tenant", "rent", "security deposit", "deposit", "eviction", "evict", "lease", "rental agreement", "rent agreement", "house owner"]
+      kn: ["ಬಾಡಿಗೆ", "ಮನೆ ಮಾಲೀಕ", "ಮುಂಗಡ", "ಬಾಡಿಗೆದಾರ"]
+    retrieval_terms: ["tenant", "landlord", "rent", "premises"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+  property.land:
+    domain: property
+    label: {en: "Land, property and inheritance", kn: "ಭೂಮಿ, ಆಸ್ತಿ ಮತ್ತು ಉತ್ತರಾಧಿಕಾರ"}
+    keywords:
+      en: ["property", "land", "plot", "sale deed", "khata", "mutation", "encroachment", "partition", "inheritance", "inherit", "succession", "ancestral property", "registration of property", "power of attorney", "rtc", "pahani"]
+      kn: ["ಆಸ್ತಿ", "ಜಮೀನು", "ಖಾತಾ", "ಪಹಣಿ", "ಉತ್ತರಾಧಿಕಾರ", "ಹಿಸ್ಸೆ"]
+    retrieval_terms: ["property", "transfer", "succession", "registration"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+    risk: high
+
+  # ---- family ----------------------------------------------------------------------------
+  family.marriage:
+    domain: family
+    label: {en: "Marriage, divorce, maintenance and custody", kn: "ವಿವಾಹ, ವಿಚ್ಛೇದನ, ಜೀವನಾಂಶ ಮತ್ತು ಮಕ್ಕಳ ಪಾಲನೆ"}
+    keywords:
+      en: ["divorce", "maintenance", "alimony", "custody", "marriage", "husband", "wife", "separation", "marriage registration", "child support", "senior citizen", "parents maintenance", "adoption", "guardianship"]
+      kn: ["ವಿಚ್ಛೇದನ", "ಜೀವನಾಂಶ", "ವಿವಾಹ", "ಮದುವೆ", "ಗಂಡ", "ಹೆಂಡತಿ", "ಮಕ್ಕಳ ಪಾಲನೆ", "ಹಿರಿಯ ನಾಗರಿಕ"]
+    retrieval_terms: ["marriage", "maintenance", "custody"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+    risk: high
+  family.domestic_violence:
+    domain: family
+    label: {en: "Domestic violence and protection", kn: "ಕೌಟುಂಬಿಕ ದೌರ್ಜನ್ಯ ಮತ್ತು ರಕ್ಷಣೆ"}
+    keywords:
+      en: ["domestic violence", "abusive husband", "in-laws", "in-laws harassment", "harass me for dowry", "protection order", "dowry harassment", "cruelty", "beats me", "hits me at home"]
+      kn: ["ಕೌಟುಂಬಿಕ ದೌರ್ಜನ್ಯ", "ಕಿರುಕುಳ"]
+    retrieval_terms: ["domestic violence", "aggrieved person", "protection officer", "protection order"]
+    required_facts: [jurisdiction]
+    optional_facts: []
+    risk: high
+
+  # ---- employment ------------------------------------------------------------------------
+  employment.rights:
+    domain: employment
+    label: {en: "Wages, termination and workplace rights", kn: "ವೇತನ, ಕೆಲಸದಿಂದ ತೆಗೆದುಹಾಕುವಿಕೆ ಮತ್ತು ಕೆಲಸದ ಹಕ್ಕುಗಳು"}
+    keywords:
+      en: ["salary", "wages", "minimum wage", "employer", "terminated", "fired", "dismissed", "gratuity", "provident fund", "esi", "notice period", "overtime", "bonus", "layoff", "retrenchment"]
+      kn: ["ಸಂಬಳ", "ವೇತನ", "ಉದ್ಯೋಗದಾತ", "ಕೆಲಸದಿಂದ ತೆಗೆದರು"]
+    retrieval_terms: ["employer", "employee", "wages", "worker"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+  employment.harassment:
+    domain: employment
+    label: {en: "Sexual harassment at the workplace", kn: "ಕೆಲಸದ ಸ್ಥಳದಲ್ಲಿ ಲೈಂಗಿಕ ಕಿರುಕುಳ"}
+    keywords:
+      en: ["sexual harassment at work", "posh", "internal committee", "internal complaints committee", "harassed at office", "workplace harassment"]
+      kn: ["ಲೈಂಗಿಕ ಕಿರುಕುಳ", "ಕಚೇರಿಯಲ್ಲಿ ಕಿರುಕುಳ"]
+    retrieval_terms: ["sexual harassment", "workplace", "internal committee", "complaint"]
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date]
+    risk: high
+
+  # ---- cyber -----------------------------------------------------------------------------
+  cyber.fraud:
+    domain: cyber
+    label: {en: "Cyber fraud and online offences", kn: "ಸೈಬರ್ ವಂಚನೆ ಮತ್ತು ಆನ್‌ಲೈನ್ ಅಪರಾಧಗಳು"}
+    keywords:
+      en: ["cyber", "online fraud", "upi fraud", "scam", "phishing", "hacked", "otp fraud", "sextortion", "fake profile", "identity theft", "information technology act", "it act", "morphed photo"]
+      kn: ["ಸೈಬರ್", "ಆನ್‌ಲೈನ್ ವಂಚನೆ", "ಹ್ಯಾಕ್"]
+    retrieval_terms: ["computer resource", "electronic", "information technology"]
+    required_facts: []
+    optional_facts: [jurisdiction, incident_date]
+    date_sensitive: true
+
+  # ---- government ------------------------------------------------------------------------
+  government.rti:
+    domain: government
+    label: {en: "Right to Information and public services", kn: "ಮಾಹಿತಿ ಹಕ್ಕು ಮತ್ತು ಸಾರ್ವಜನಿಕ ಸೇವೆಗಳು"}
+    keywords:
+      en: ["rti", "right to information", "public information officer", "pio", "first appeal", "information commission", "government office", "ration card", "pension", "certificate delayed"]
+      kn: ["ಮಾಹಿತಿ ಹಕ್ಕು", "ಆರ್‌ಟಿಐ", "ಸರ್ಕಾರಿ ಕಚೇರಿ", "ಪಿಂಚಣಿ"]
+    retrieval_terms: ["information", "public authority", "appeal"]
+    required_facts: []
+    optional_facts: [jurisdiction, incident_date]
+
+  # ---- banking ---------------------------------------------------------------------------
+  banking.cheque_bounce:
+    domain: banking
+    label: {en: "Cheque bounce", kn: "ಚೆಕ್ ಬೌನ್ಸ್"}
+    keywords:
+      en: ["cheque bounce", "check bounce", "cheque bounced", "cheque", "bounced", "cheque dishonour", "dishonoured cheque", "negotiable instruments"]
+      kn: ["ಚೆಕ್ ಬೌನ್ಸ್"]
+    retrieval_terms: ["cheque", "dishonour", "drawer", "notice"]
+    required_facts: [jurisdiction, incident_date]
+    optional_facts: []
+    date_sensitive: true
+    risk: high
+  banking.loans:
+    domain: banking
+    label: {en: "Loans, EMIs and recovery agents", kn: "ಸಾಲ, ಇಎಂಐ ಮತ್ತು ವಸೂಲಾತಿ ಏಜೆಂಟರು"}
+    keywords:
+      en: ["loan", "emi", "recovery agent", "loan app", "credit card", "bank account frozen", "bank charges", "banking ombudsman", "cibil"]
+      kn: ["ಸಾಲ", "ಇಎಂಐ", "ಬ್ಯಾಂಕ್"]
+    retrieval_terms: ["loan", "borrower", "lender", "bank"]
+    required_facts: []
+    optional_facts: [jurisdiction]
+
+  # ---- catch-all -------------------------------------------------------------------------
+  # Used when a message looks like a legal question but matches no topic. Searches every
+  # loaded domain; abstains if nothing relevant is found. Never answers from model memory.
+  general.legal:
+    domain: general
+    label: {en: "General legal question", kn: "ಸಾಮಾನ್ಯ ಕಾನೂನು ಪ್ರಶ್ನೆ"}
+    keywords: {}
+    retrieval_terms: []
+    required_facts: [jurisdiction]
+    optional_facts: [incident_date, cited_provision]
+    date_sensitive: true

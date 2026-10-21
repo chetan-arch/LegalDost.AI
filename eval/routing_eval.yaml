@@ -1,0 +1,39 @@
+# Labelled routing set for comparing decision engines:  legaldost eval routing --engines rules,jev,llm
+cases:
+  - {id: r01, message: "I have been stopped by traffic police in Karnataka because of my tinted windows. Can they fine me?", intent: legal_question, topic: traffic.tinted_glass}
+  - {id: r02, message: "Is 50% VLT sun film legal on side windows?", intent: legal_question, topic: traffic.tinted_glass}
+  - {id: r03, message: "Police said my black film is illegal and must be removed", intent: legal_question, topic: traffic.tinted_glass}
+  - {id: r04, message: "Can I challenge this traffic challan?", intent: legal_question, topic: traffic.challan}
+  - {id: r05, message: "I got an e-challan for overspeeding but I wasn't driving", intent: legal_question, topic: traffic.challan}
+  - {id: r06, message: "The officer cited the wrong section on my challan", intent: legal_question, topic: traffic.challan}
+  - {id: r07, message: "Do I need to carry my original driving licence or is DigiLocker enough?", intent: legal_question, topic: traffic.documents}
+  - {id: r08, message: "My insurance expired last week, can police seize my bike?", intent: legal_question, topic: traffic.documents}
+  - {id: r09, message: "Is wearing a helmet mandatory for the pillion rider?", intent: legal_question, topic: traffic.general}
+  - {id: r10, message: "What does this section of the Motor Vehicles Act mean?", intent: legal_question, topic: traffic.general}
+  - {id: r11, message: "Can a shop refuse to refund a defective product?", intent: legal_question, topic: consumer.refund}
+  - {id: r12, message: "What documents should I preserve for a consumer complaint?", intent: legal_question, topic: consumer.refund}
+  - {id: r13, message: "My landlord won't return my security deposit", intent: legal_question, topic: tenancy.dispute}
+  - {id: r14, message: "Can the landlord evict me without notice?", intent: legal_question, topic: tenancy.dispute}
+  - {id: r15, message: "My employer hasn't paid my salary for two months", intent: legal_question, topic: employment.rights}
+  - {id: r16, message: "I lost money in a UPI fraud, how do I report it?", intent: legal_question, topic: cyber.fraud}
+  - {id: r17, message: "The police station refused to register my FIR", intent: legal_question, topic: police.procedure}
+  - {id: r18, message: "hello", intent: greeting, topic: null}
+  - {id: r19, message: "Namaste", intent: greeting, topic: null}
+  - {id: r20, message: "What's the weather tomorrow?", intent: out_of_scope, topic: null}
+  - {id: r21, message: "ನನ್ನ ಕಾರಿಗೆ ಕಪ್ಪು ಫಿಲ್ಮ್ ಇದೆ, ದಂಡ ಹಾಕಬಹುದೇ?", language: kn, intent: legal_question, topic: traffic.tinted_glass}
+  - {id: r22, message: "ಟ್ರಾಫಿಕ್ ಪೊಲೀಸರು ಚಲನ್ ಕೊಟ್ಟರು, ಪ್ರಶ್ನಿಸಬಹುದೇ?", language: kn, intent: legal_question, topic: traffic.challan}
+  - {id: r23, message: "ಮನೆ ಮಾಲೀಕ ಮುಂಗಡ ಹಣ ಕೊಡುತ್ತಿಲ್ಲ", language: kn, intent: legal_question, topic: tenancy.dispute}
+  - {id: r24, message: "Is drunk driving a criminal offence in Karnataka?", intent: legal_question, topic: traffic.general}
+  - {id: r25, message: "Which law does this notice refer to? It says rule 100", intent: legal_question, topic: null}  # no topic cue: catch-all
+  - {id: r26, message: "Can my husband take custody of our child after divorce?", intent: legal_question, topic: family.marriage}
+  - {id: r27, message: "My in-laws harass me for dowry and my husband beats me at home", intent: legal_question, topic: family.domestic_violence}
+  - {id: r28, message: "My brother is not giving me my share in ancestral property", intent: legal_question, topic: property.land}
+  - {id: r29, message: "The cheque he gave me bounced, what can I do?", intent: legal_question, topic: banking.cheque_bounce}
+  - {id: r30, message: "Loan recovery agents keep calling my relatives", intent: legal_question, topic: banking.loans}
+  - {id: r31, message: "How do I file an RTI application?", intent: legal_question, topic: government.rti}
+  - {id: r32, message: "Is freedom of speech a fundamental right?", intent: legal_question, topic: constitutional.rights}
+  - {id: r33, message: "My manager sexually harassed me at work, the internal committee did nothing", intent: legal_question, topic: employment.harassment}
+  - {id: r34, message: "Someone cheated me and took 50,000 rupees, is it a crime?", intent: legal_question, topic: criminal.offence}
+  - {id: r35, message: "Is it legal to record a phone call without consent?", intent: legal_question, topic: null}
+  - {id: r36, message: "ನನ್ನ ಗಂಡ ವಿಚ್ಛೇದನ ಕೇಳುತ್ತಿದ್ದಾರೆ", language: kn, intent: legal_question, topic: family.marriage}
+  - {id: r37, message: "ಜಮೀನು ಖಾತಾ ಬದಲಾವಣೆ ಹೇಗೆ?", language: kn, intent: legal_question, topic: property.land}

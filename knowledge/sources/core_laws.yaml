@@ -1,0 +1,222 @@
+# Core central and Karnataka laws for general coverage — TEMPLATE.
+# (Acts already loaded from other hosts live in general_law_initial.yaml.)
+#
+# Every entry is `enabled: false` until an operator has the real document. To load one:
+#   1. Download the official PDF (India Code: https://www.indiacode.nic.in for central Acts;
+#      Karnataka DPAL: https://dpal.karnataka.gov.in for state Acts; eGazette for notifications).
+#   2. Save it as knowledge/sources/files/<source_key>.pdf  (this folder is git-ignored).
+#   3. Set `source_url` to the exact page/PDF URL you downloaded it from.
+#   4. Fill in act number and dates ONLY from the document itself (leave null if unsure).
+#   5. Set `enabled: true`, then run:
+#        legaldost ingest manifest knowledge/sources/core_laws.yaml
+#   6. After an advocate checks it: legaldost sources review <source_key> --reviewer "Adv. Name"
+#      and set its legal status: legaldost sources status <source_key> in_force --note "..."
+#
+# Loading a source tagged with a domain is what switches that domain on for users.
+# Titles below are the Acts' short titles; nothing else is pre-filled on purpose.
+
+name: core_laws
+description: Central and Karnataka legislation for broad everyday-law coverage.
+
+sources:
+  # ---------------------------------------------------------------- criminal & police
+  - source_key: in-indian-penal-code-1860
+    enabled: false
+    title: "The Indian Penal Code, 1860"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [criminal]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-indian-penal-code-1860.pdf
+    notes: "Mark legal_status as superseded/repealed with the correct note once confirmed; still relevant for incidents before the BNS commenced."
+  - source_key: in-bharatiya-sakshya-adhiniyam-2023
+    enabled: false
+    title: "The Bharatiya Sakshya Adhiniyam, 2023"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [criminal, police]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-bharatiya-sakshya-adhiniyam-2023.pdf
+
+  # ---------------------------------------------------------------- constitutional
+  - source_key: in-constitution-of-india
+    enabled: false
+    title: "The Constitution of India"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [constitutional]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-constitution-of-india.pdf
+    notes: "Use the latest official consolidated text; record the 'as on' date in status_note."
+
+  # ---------------------------------------------------------------- consumer
+  - source_key: in-gazette-consumer-protection-act-2019
+    enabled: true
+    title: "The Consumer Protection Act, 2019 (as published in the Gazette of India, 9 August 2019)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [consumer]
+    identifiers: {gazette: "Gazette of India Extraordinary, Part II, Section 1, No. 54, 9 August 2019"}
+    source_url: "https://egazette.gov.in/WriteReadData/2019/210422.pdf"
+    languages: [en, hi]
+    publication_date: 2019-08-09
+    legal_status: unknown
+    status_note: >-
+      Text as enacted. Provisions were brought into force by later notifications and may have been
+      amended since; add the consolidated India Code version and check commencement before relying on it.
+    fetch_url: "https://egazette.gov.in/WriteReadData/2019/210422.pdf"
+    notes: "Fetched successfully 2026-10-20. Publication date and title confirmed from the Gazette text."
+
+  # ---------------------------------------------------------------- tenancy & property
+  - source_key: ka-karnataka-rent-act-1999
+    enabled: false
+    title: "The Karnataka Rent Act, 1999"
+    issuing_authority: "Government of Karnataka"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN-KA
+    legal_domains: [tenancy]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/ka-karnataka-rent-act-1999.pdf
+  - source_key: ka-karnataka-land-revenue-act-1964
+    enabled: false
+    title: "The Karnataka Land Revenue Act, 1964"
+    issuing_authority: "Government of Karnataka"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN-KA
+    legal_domains: [property]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/ka-karnataka-land-revenue-act-1964.pdf
+  - source_key: in-transfer-of-property-act-1882
+    enabled: false
+    title: "The Transfer of Property Act, 1882"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [property, tenancy]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-transfer-of-property-act-1882.pdf
+
+  # ---------------------------------------------------------------- family
+  - source_key: in-special-marriage-act-1954
+    enabled: false
+    title: "The Special Marriage Act, 1954"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [family]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-special-marriage-act-1954.pdf
+  - source_key: in-maintenance-welfare-parents-senior-citizens-act-2007
+    enabled: false
+    title: "The Maintenance and Welfare of Parents and Senior Citizens Act, 2007"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [family]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-maintenance-welfare-parents-senior-citizens-act-2007.pdf
+
+  # ---------------------------------------------------------------- employment
+  - source_key: in-code-on-wages-2019
+    enabled: false
+    title: "The Code on Wages, 2019"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [employment]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-code-on-wages-2019.pdf
+    notes: "Check commencement notifications before marking in_force."
+  - source_key: in-sexual-harassment-of-women-at-workplace-act-2013
+    enabled: false
+    title: "The Sexual Harassment of Women at Workplace (Prevention, Prohibition and Redressal) Act, 2013"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [employment]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-sexual-harassment-of-women-at-workplace-act-2013.pdf
+
+  # ---------------------------------------------------------------- cyber & data
+  - source_key: in-information-technology-act-2000
+    enabled: false
+    title: "The Information Technology Act, 2000"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [cyber]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-information-technology-act-2000.pdf
+
+  # ---------------------------------------------------------------- government
+  - source_key: in-right-to-information-act-2005
+    enabled: false
+    title: "The Right to Information Act, 2005"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [government]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-right-to-information-act-2005.pdf
+  - source_key: in-legal-services-authorities-act-1987
+    enabled: false
+    title: "The Legal Services Authorities Act, 1987"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [government, general]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-legal-services-authorities-act-1987.pdf
+
+  # ---------------------------------------------------------------- banking
+  - source_key: in-negotiable-instruments-act-1881
+    enabled: false
+    title: "The Negotiable Instruments Act, 1881"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [banking]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-negotiable-instruments-act-1881.pdf
+
+  # ---------------------------------------------------------------- traffic (official texts)
+  - source_key: ka-karnataka-motor-vehicles-rules-1989
+    enabled: false
+    title: "The Karnataka Motor Vehicles Rules, 1989"
+    issuing_authority: "Transport Department, Government of Karnataka"
+    document_type: rules
+    source_category: primary_official
+    jurisdiction: IN-KA
+    legal_domains: [traffic]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/ka-karnataka-motor-vehicles-rules-1989.pdf
+  - source_key: in-central-motor-vehicles-rules-1989
+    enabled: false
+    title: "The Central Motor Vehicles Rules, 1989"
+    issuing_authority: "Ministry of Road Transport and Highways"
+    document_type: rules
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [traffic]
+    source_url: "REPLACE_WITH_DOWNLOAD_URL"
+    local_file: files/in-central-motor-vehicles-rules-1989.pdf
+    notes: "Use a consolidated copy that includes the 2020 substitution of Rule 100; record the 'as amended up to' date."

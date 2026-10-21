@@ -1,0 +1,144 @@
+# Initial traffic/vehicle source manifest.
+#
+# Every entry points to a real document. Metadata below was taken from the document itself or
+# left as unknown/null. Nothing here has been reviewed by an advocate yet:
+#   legaldost sources review <source_key> --reviewer "<name>"   (after review)
+#
+# Download, extraction and indexing happen on the operator's machine:
+#   legaldost ingest manifest knowledge/sources/traffic_initial.yaml
+#
+# Fetch status as observed from the development machine on 2026-10-17 is recorded in `notes`.
+
+name: traffic_initial
+description: Central motor-vehicle sources and related judgments for the first traffic use case.
+
+sources:
+  # ------------------------------------------------------------------------------------------
+  - source_key: in-gazette-cmvr-fifth-amendment-2023-gsr-663e
+    title: "Central Motor Vehicles (Fifth Amendment) Rules, 2023 — G.S.R. 663(E)"
+    issuing_authority: "Ministry of Road Transport and Highways, Government of India"
+    document_type: notification
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [traffic]
+    identifiers: {gsr: "663(E)", gazette_id: "CG-DL-E-12092023-248660", amends: "Central Motor Vehicles Rules, 1989"}
+    source_url: "https://egazette.gov.in/WriteReadData/2023/248660.pdf"
+    languages: [hi, en]
+    publication_date: 2023-09-12
+    commencement_date: 2023-09-12
+    legal_status: unknown
+    status_note: "Commencement per rule 1(2) of the notification (on publication in the Gazette). Later amendments not checked."
+    licensing_note: "Gazette of India publication."
+    fetch_url: "https://egazette.gov.in/WriteReadData/2023/248660.pdf"
+    notes: "Fetched successfully 2026-10-17. Amends rule 62 (fitness certificate renewal)."
+
+  # ------------------------------------------------------------------------------------------
+  - source_key: kl-hc-2024-ker-68346-safety-glazing
+    title: "M/s. George & Sons v. Union of India, W.P.(C) Nos. 23146 & 28289 of 2022 (Kerala High Court)"
+    issuing_authority: "High Court of Kerala at Ernakulam"
+    document_type: judgment
+    source_category: secondary
+    jurisdiction: IN-KL
+    court_level: high_court
+    legal_domains: [traffic]
+    identifiers: {neutral_citation: "2024:KER:68346", case_numbers: ["WP(C) 23146/2022", "WP(C) 28289/2022"]}
+    source_url: "https://verdictum.in/pdf_upload/2024-ker-68340-1653029.pdf"
+    host_note: >-
+      Copy hosted by verdictum.in (a legal news site) with the site's watermark. The URL filename says
+      68340 but the document text states 2024:KER:68346. Replace with the Kerala High Court's own copy
+      once obtained.
+    languages: [en]
+    judgment_date: 2024-09-10
+    legal_status: unknown
+    status_note: "Appeal / later proceedings not checked."
+    licensing_note: "Judgment text; hosting site's terms apply to their copy."
+    fetch_url: "https://verdictum.in/pdf_upload/2024-ker-68340-1653029.pdf"
+    notes: "Fetched successfully 2026-10-17. Discusses Rule 100 CMVR before and after the 01.04.2021 amendment."
+
+  # ------------------------------------------------------------------------------------------
+  - source_key: in-pib-mv-amendment-2019-sections-from-2019-09-01
+    title: "Sections to be made applicable starting 1st September 2019 of the Motor Vehicles Amendment Act 2019 (summary table)"
+    issuing_authority: "Hosted by Press Information Bureau, Government of India (author not stated in the document)"
+    document_type: official_summary
+    source_category: official_secondary
+    jurisdiction: IN
+    legal_domains: [traffic]
+    identifiers: {relates_to: "Motor Vehicles (Amendment) Act, 2019 (No. 32 of 2019)"}
+    source_url: "https://static.pib.gov.in/WriteReadData/userfiles/MVA.pdf"
+    languages: [en]
+    legal_status: unknown
+    status_note: "Government summary, not the statute. Penalty amounts must be checked against the Act and later notifications."
+    fetch_url: "https://static.pib.gov.in/WriteReadData/userfiles/MVA.pdf"
+    notes: "Fetched successfully 2026-10-17."
+
+  # ------------------------------------------------------------------------------------------
+  # The following primary sources are REQUIRED for reliable answers but could not be fetched from
+  # the development machine. They are registered so the gap is visible; ingestion will record
+  # the failure. Fetch them from a network where the sites respond, or upload a downloaded copy:
+  #   legaldost ingest file <source_key> <path-to-pdf>
+  - source_key: in-indiacode-motor-vehicles-act-1988
+    title: "The Motor Vehicles Act, 1988 (Act No. 59 of 1988) — India Code"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (India Code)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [traffic]
+    identifiers: {act_no: "59 of 1988"}
+    source_url: "https://www.indiacode.nic.in/bitstream/123456789/19318/1/the_motor_vehicle_act_1988.pdf"
+    languages: [en]
+    legal_status: unknown
+    status_note: "Check whether the India Code copy incorporates the 2019 amendments before marking in_force."
+    fetch_url: "https://www.indiacode.nic.in/bitstream/123456789/19318/1/the_motor_vehicle_act_1988.pdf"
+    notes: "Timed out from the development machine on 2026-10-17."
+
+  - source_key: sc-2012-avishek-goenka-v-uoi
+    title: "Avishek Goenka v. Union of India, W.P.(C) No. 265 of 2011 (Supreme Court of India)"
+    issuing_authority: "Supreme Court of India"
+    document_type: judgment
+    source_category: primary_official
+    jurisdiction: IN
+    court_level: supreme_court
+    legal_domains: [traffic]
+    identifiers: {case_number: "WP(C) 265/2011"}
+    source_url: "https://main.sci.gov.in/jonew/judis/39452.pdf"
+    languages: [en]
+    legal_status: unknown
+    status_note: "Judgment date to be taken from the judgment text after ingestion. Interpreted the pre-2021 Rule 100."
+    fetch_url: "https://main.sci.gov.in/jonew/judis/39452.pdf"
+    notes: "Host did not resolve from the development machine on 2026-10-17."
+
+  - source_key: in-morth-gsr-457e-2020-cmvr-seventh-amendment
+    title: "Central Motor Vehicles (Seventh Amendment) Rules, 2020 — G.S.R. 457(E) dated 20 July 2020"
+    issuing_authority: "Ministry of Road Transport and Highways, Government of India"
+    document_type: notification
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [traffic]
+    identifiers: {gsr: "457(E)", amends: "Central Motor Vehicles Rules, 1989"}
+    source_url: "https://morth.gov.in/sites/default/files/notifications_document/GSR%20457(E)%20dated%2020th%20July%202020%20TPMS,%20foot%20rest,%20wind%20screen,%20no%20spare%20wheel,%20.pdf"
+    languages: [hi, en]
+    legal_status: unknown
+    status_note: "Reported to substitute Rule 100 with effect from 01.04.2021; confirm from the Gazette text."
+    fetch_url: "https://morth.gov.in/sites/default/files/notifications_document/GSR%20457(E)%20dated%2020th%20July%202020%20TPMS,%20foot%20rest,%20wind%20screen,%20no%20spare%20wheel,%20.pdf"
+    notes: "On 2026-10-17 this URL returned an HTML application shell, not the PDF. Obtain the eGazette copy."
+
+  # ------------------------------------------------------------------------------------------
+  - source_key: in-gazette-motor-vehicles-amendment-act-2019
+    title: "The Motor Vehicles (Amendment) Act, 2019 (No. 32 of 2019), as published in the Gazette of India, 9 August 2019"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [traffic]
+    identifiers: {act_no: "32 of 2019", amends: "Motor Vehicles Act, 1988", gazette: "Gazette of India Extraordinary, Part II, Section 1, No. 51, 9 August 2019"}
+    source_url: "https://egazette.gov.in/WriteReadData/2019/210413.pdf"
+    languages: [en, hi]
+    publication_date: 2019-08-09
+    legal_status: unknown
+    status_note: >-
+      Amending Act as enacted. Under its section 1(2) provisions commence on dates notified by the
+      Central Government (the PIB-hosted table lists sections in force from 1 September 2019).
+      States may notify their own compounding (on-the-spot) amounts under section 200 of the 1988 Act;
+      Karnataka's notification is not loaded. Later amendments not checked.
+    fetch_url: "https://egazette.gov.in/WriteReadData/2019/210413.pdf"
+    notes: "Fetched successfully 2026-10-21. Title, Act number and date confirmed from the Gazette text. Contains new ss. 194A-194F (helmet, seat belt etc.)."

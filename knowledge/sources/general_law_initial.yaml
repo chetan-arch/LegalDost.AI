@@ -1,0 +1,126 @@
+# General-law sources that were downloadable on 2026-10-21 (India Code itself returned gateway
+# timeouts). Each is a real document; metadata comes from the document text or is left unknown.
+# None is advocate-reviewed yet. Copies hosted by courts or departments are faithful reproductions
+# of the Act but are not the Gazette / India Code text: replace them with India Code copies when
+# that site is reachable, and check later amendments before marking anything in_force.
+#
+#   legaldost ingest manifest knowledge/sources/general_law_initial.yaml
+
+name: general_law_initial
+description: Family, maintenance/alimony, succession and criminal-law sources for broad coverage.
+
+sources:
+  # ---------------------------------------------------------------- family / maintenance
+  - source_key: in-hindu-marriage-act-1955
+    title: "The Hindu Marriage Act, 1955"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (copy hosted by the Punjab and Haryana High Court Legal Services Committee)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [family]
+    source_url: "https://www.highcourtchd.gov.in/hclscc/subpages/pdf_files/4.pdf"
+    host_note: "Reproduction hosted by an official court body (amendment notes up to 2019 visible); not the Gazette or India Code copy."
+    languages: [en]
+    legal_status: unknown
+    fetch_url: "https://www.highcourtchd.gov.in/hclscc/subpages/pdf_files/4.pdf"
+    notes: "Fetched 2026-10-21; contains s.13B (mutual consent divorce), s.24/25 (maintenance, permanent alimony)."
+
+  - source_key: in-hindu-adoptions-maintenance-act-1956
+    title: "The Hindu Adoptions and Maintenance Act, 1956 (No. 78 of 1956)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (copy hosted by the High Court of Andhra Pradesh)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [family]
+    identifiers: {act_no: "78 of 1956"}
+    source_url: "https://aphc.gov.in/docs/safe_rule_01112025095208.pdf"
+    host_note: "Reproduction hosted by the High Court of Andhra Pradesh; not the Gazette or India Code copy."
+    languages: [en]
+    legal_status: unknown
+    fetch_url: "https://aphc.gov.in/docs/safe_rule_01112025095208.pdf"
+    notes: "Fetched 2026-10-21; Chapter III covers maintenance of wife, children and aged parents."
+
+  - source_key: in-protection-of-women-from-domestic-violence-act-2005
+    title: "The Protection of Women from Domestic Violence Act, 2005"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (copy hosted by the National Commission for Women)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [family, criminal]
+    source_url: "https://cdn.ncw.gov.in/wp-content/uploads/2022/12/TheProtectionofWomenfromDomesticViolenceAct2005_0.pdf"
+    host_note: "Reproduction hosted by the National Commission for Women; not the Gazette or India Code copy."
+    languages: [en]
+    legal_status: unknown
+    fetch_url: "https://cdn.ncw.gov.in/wp-content/uploads/2022/12/TheProtectionofWomenfromDomesticViolenceAct2005_0.pdf"
+    notes: "Fetched 2026-10-21."
+
+  # ---------------------------------------------------------------- succession / property
+  - source_key: in-hindu-succession-act-1956
+    title: "The Hindu Succession Act, 1956 (No. 30 of 1956) — text WITHOUT the 2005 amendment"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (copy hosted by the Supreme Court Legal Services Committee)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [property, family]
+    identifiers: {act_no: "30 of 1956"}
+    source_url: "https://sclsc.gov.in/theme/front/pdf/ACTS%20FINAL/THE%20HINDU%20SUCCESSION%20ACT,%201956.pdf"
+    host_note: >-
+      This copy does NOT include the Hindu Succession (Amendment) Act, 2005, which substituted
+      section 6 (daughters as coparceners) and omitted section 4(2). For those provisions use the
+      2005 amending Act registered separately.
+    languages: [en]
+    publication_date: 1956-06-17
+    legal_status: amended
+    status_note: "Amended by Act 39 of 2005 (s.6 substituted, s.4(2) omitted); this copy predates that amendment."
+    fetch_url: "https://sclsc.gov.in/theme/front/pdf/ACTS%20FINAL/THE%20HINDU%20SUCCESSION%20ACT,%201956.pdf"
+    notes: "Fetched 2026-10-21. Date taken from the Act's text header."
+
+  - source_key: in-hindu-succession-amendment-act-2005
+    title: "The Hindu Succession (Amendment) Act, 2005 (No. 39 of 2005)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (copy hosted by the Government of Tamil Nadu)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [property, family]
+    identifiers: {act_no: "39 of 2005", amends: "Hindu Succession Act, 1956"}
+    source_url: "https://www.cra.tn.gov.in/tnscs/Files/act/014b_Hindu%20Sucession%20amendment%20act%2039%20of%202005.pdf"
+    host_note: "Reproduction hosted by a Government of Tamil Nadu site; not the Gazette or India Code copy."
+    languages: [en]
+    publication_date: 2005-09-05
+    legal_status: unknown
+    status_note: "Commencement by notification under its section 1(2); not verified here. The Supreme Court's 2020 decision in Vineeta Sharma v. Rakesh Sharma interpreted the new section 6 and is not loaded yet."
+    fetch_url: "https://www.cra.tn.gov.in/tnscs/Files/act/014b_Hindu%20Sucession%20amendment%20act%2039%20of%202005.pdf"
+    notes: "Fetched 2026-10-21. Date in the header ([5th September, 2005]) is the assent date shown in the text."
+
+  # ---------------------------------------------------------------- criminal law and procedure
+  - source_key: in-bharatiya-nyaya-sanhita-2023
+    title: "The Bharatiya Nyaya Sanhita, 2023 (No. 45 of 2023)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (Gazette text reproduced by PRS Legislative Research)"
+    document_type: statute
+    source_category: secondary
+    jurisdiction: IN
+    legal_domains: [criminal, cyber, family]
+    identifiers: {act_no: "45 of 2023"}
+    source_url: "https://prsindia.org/files/bills_acts/bills_parliament/2023/The%20Bharatiya%20Nyaya%20Sanhita,%202023.pdf"
+    host_note: "Gazette text as enacted, hosted by PRS Legislative Research (non-profit, not a government site). Replace with the India Code copy when reachable."
+    languages: [en]
+    legal_status: unknown
+    status_note: "Replaced the Indian Penal Code from its commencement; the IPC still applies to earlier incidents and is not loaded."
+    fetch_url: "https://prsindia.org/files/bills_acts/bills_parliament/2023/The%20Bharatiya%20Nyaya%20Sanhita,%202023.pdf"
+    notes: "Fetched 2026-10-21. Act number confirmed from the text."
+
+  - source_key: in-bharatiya-nagarik-suraksha-sanhita-2023
+    title: "The Bharatiya Nagarik Suraksha Sanhita, 2023 (No. 46 of 2023)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (Gazette text reproduced by PRS Legislative Research)"
+    document_type: statute
+    source_category: secondary
+    jurisdiction: IN
+    legal_domains: [police, criminal, family]
+    identifiers: {act_no: "46 of 2023"}
+    source_url: "https://prsindia.org/files/bills_acts/bills_parliament/2023/The%20Bharatiya%20Nagarik%20Suraksha%20Sanhita,%202023.pdf"
+    host_note: "Gazette text as enacted, hosted by PRS Legislative Research (non-profit, not a government site). Replace with the India Code copy when reachable."
+    languages: [en]
+    legal_status: unknown
+    status_note: "Replaced the Code of Criminal Procedure from its commencement. Section 144 covers maintenance of wives, children and parents (formerly CrPC s.125)."
+    fetch_url: "https://prsindia.org/files/bills_acts/bills_parliament/2023/The%20Bharatiya%20Nagarik%20Suraksha%20Sanhita,%202023.pdf"
+    notes: "Fetched 2026-10-21. Act number confirmed from the text."

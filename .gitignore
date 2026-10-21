@@ -1,0 +1,22 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# local data: database, downloaded legal documents, eval reports
+data/
+
+# python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# downloaded legal documents (not redistributed in the repo)
+knowledge/sources/files/*
+!knowledge/sources/files/README.txt
