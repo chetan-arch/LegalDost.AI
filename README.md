@@ -178,6 +178,63 @@ outbound is configured.
 
 ---
 
+## Growing the knowledge base
+
+**Court judgments in bulk (free, CC-BY-4.0).** Two open datasets on AWS Open Data, maintained by
+Dattam Labs and sourced from the courts' and eCourts websites, are importable directly (no AWS
+account needed):
+[Indian Supreme Court Judgments](https://registry.opendata.aws/indian-supreme-court-judgments/) (1950 onwards) and
+[Indian High Court Judgments](https://registry.opendata.aws/indian-high-court-judgments/) (25 High Courts;
+Karnataka is court code `29_3`). Each judgment is registered as a `secondary` source with an
+attribution note (they are convenient copies, not certified copies), tagged with legal areas from its
+own text, and indexed. Imports are resumable.
+
+```bash
+legaldost import-judgments sc --years 2018-2025
+legaldost import-judgments sc --years 2012 --title "goenka"          # pick specific cases by title
+legaldost import-judgments hc --years 2024-2025 --limit-per-year 500  # Karnataka High Court
+```
+
+High Court imports skip procedural one-liners (withdrawn, non-prosecution, adjourned and so on) and
+rows without a PDF. Each import holds the database write lock only briefly (the PDF is read and
+embedded first), so the live server keeps answering while an import runs.
+
+How judgments are used:
+
+* Judgments never make an area "supported" on their own. An area such as employment stays
+  unsupported until its Act or rules are loaded, so the bot does not answer an unpaid-salary question
+  from whichever rulings happen to mention salary.
+* The law comes first: up to two evidence slots are kept for Acts, rules and notifications whenever
+  they match, and judgments fill the rest.
+* Each case counts once: copies of the same judgment (different reporters, re-uploads) share at most
+  two evidence slots.
+* In the catch-all area, when the model's summary cannot be verified against the quotes, the bot
+  says it has no reliable source instead of showing loosely related quotes.
+
+**Semantic search on the GPU.** `EMBEDDING_BACKEND=sentence-transformers` with
+`EMBEDDING_MODEL=intfloat/multilingual-e5-small` (`EMBEDDING_DIM=384`) runs on CUDA when
+available. Install the CUDA build of PyTorch first, then the extra:
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu128
+pip install -e ".[local-embeddings]"
+```
+
+The model (about 470 MB) downloads on first use; re-embedding about 2,000 passages takes under two
+minutes on a laptop RTX 4070. Similarity scores from this model sit in a narrow band (unrelated
+text still scores about 0.81), so keep `SEMANTIC_MIN_SIMILARITY` near 0.86. It links
+different words with the same meaning ("windshield"/"windscreen", "mesh"/"other material"). Passages
+found by meaning alone must exceed `SEMANTIC_MIN_SIMILARITY`. After changing the model run
+`legaldost reindex-embeddings`.
+
+**Scaled indexes.** Keyword search uses an SQLite FTS5 table (Porter stemming, BM25) and vector
+search uses an in-memory matrix cached under `data/index/`, so retrieval cost no longer grows with a
+full scan of every passage. `legaldost index-rebuild` rebuilds the keyword index.
+
+**Gap log.** Questions the bot could not answer are recorded as keywords only (no message text,
+no user id, expire after `GAP_LOG_RETENTION_DAYS`, default 30). `legaldost gaps` shows which areas
+and words come up most, i.e. what to load next.
+
 ## Managing legal sources
 
 Sources go through `unverified` → `fetched_unreviewed` → `reviewer_verified`. Legal status

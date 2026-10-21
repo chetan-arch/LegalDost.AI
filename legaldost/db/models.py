@@ -178,6 +178,23 @@ class UsageRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
 
 
+class AnswerGap(Base):
+    """A question the assistant could not answer well. Stores NO message text and no user id:
+    only the area, the outcome and up to 8 distinctive keywords, and it expires."""
+
+    __tablename__ = "answer_gaps"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    channel: Mapped[str] = mapped_column(String(20))
+    outcome: Mapped[str] = mapped_column(String(30))
+    reason: Mapped[str] = mapped_column(String(60))
+    topic: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    domain: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    terms: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
 class AnswerLog(Base):
     """Diagnostic metadata only. Never stores message text or user identifiers."""
 

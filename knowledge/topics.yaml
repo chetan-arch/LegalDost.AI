@@ -83,7 +83,7 @@ topics:
     domain: traffic
     label: {en: "Tinted glass / window film", kn: "ಟಿಂಟ್ ಗಾಜು / ಕಿಟಕಿ ಫಿಲ್ಮ್"}
     keywords:
-      en: ["tint", "tinted", "film", "sun film", "sunfilm", "black film", "window film", "vlt", "visual transmission", "light transmission", "dark glass", "safety glazing", "cooling film"]
+      en: ["tint", "tinted", "film", "sun film", "sunfilm", "black film", "window film", "vlt", "visual transmission", "light transmission", "dark glass", "safety glazing", "cooling film", "sun shade", "sunshade", "sun shades", "mesh", "curtain", "curtains", "windshield", "windscreen", "rear window", "car glass", "window glass"]
       kn: ["ಟಿಂಟ್", "ಫಿಲ್ಮ್", "ಕಪ್ಪು ಗಾಜು", "ಕಪ್ಪು ಫಿಲ್ಮ್", "ಸನ್ ಫಿಲ್ಮ್"]
     retrieval_terms: ["visual transmission of light", "safety glass", "safety glazing", "windscreen", "side windows", "film", "tinted"]
     required_facts: [jurisdiction, glazing_type]
@@ -161,7 +161,7 @@ topics:
     domain: consumer
     label: {en: "Refunds, defective goods and poor service", kn: "ಮರುಪಾವತಿ, ದೋಷಪೂರಿತ ವಸ್ತುಗಳು ಮತ್ತು ಕಳಪೆ ಸೇವೆ"}
     keywords:
-      en: ["refund", "defective", "consumer", "warranty", "guarantee", "shop refused", "replacement", "consumer forum", "consumer commission", "deficiency in service", "overcharged", "mrp", "online order", "not delivered", "e-commerce"]
+      en: ["refund", "defective", "consumer", "warranty", "guarantee", "shop refused", "replacement", "consumer forum", "consumer commission", "deficiency in service", "overcharged", "mrp", "online order", "not delivered", "e-commerce", "unfair trade practice", "unfair trade", "restrictive trade practice", "misleading advertisement", "product liability", "consumer complaint"]
       kn: ["ಮರುಪಾವತಿ", "ಗ್ರಾಹಕ", "ದೋಷಪೂರಿತ", "ಖಾತರಿ"]
     retrieval_terms: ["consumer", "defect", "deficiency", "complaint", "unfair trade practice"]
     required_facts: [jurisdiction]

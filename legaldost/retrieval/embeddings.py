@@ -1,10 +1,13 @@
 """Embedding backends.
 
-``HashingEmbedder`` is the default: deterministic, offline, no model download. It hashes word
-unigrams/bigrams and character trigrams into a fixed-size vector. It captures surface and
-morphological similarity, **not** true semantics; treat it as a development fallback. For
-production, configure a multilingual model (``EMBEDDING_BACKEND=sentence-transformers``) and run
-``legaldost reindex-embeddings``.
+* ``SentenceTransformerEmbedder`` — a real semantic model (default in ``.env``:
+  ``intfloat/multilingual-e5-small``, 384 dimensions) running on the GPU when CUDA is available.
+  It understands that "windshield" and "windscreen" mean the same thing.
+* ``HashingEmbedder`` — offline fallback with no model download. It hashes word unigrams/bigrams
+  and character trigrams into a fixed-size vector, so it captures spelling similarity only, **not**
+  meaning. Used by the test suite and when ``EMBEDDING_BACKEND=hashing``.
+
+Changing the backend or model changes the vectors: run ``legaldost reindex-embeddings`` afterwards.
 """
 
 from __future__ import annotations
@@ -22,7 +25,13 @@ class Embedder(Protocol):
     name: str
     dim: int
 
-    def embed(self, texts: list[str]) -> list[list[float]]: ...
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        """Embed stored passages."""
+        ...
+
+    def embed_query(self, text: str) -> list[float]:
+        """Embed a search query (some models use a different prefix for queries)."""
+        ...
 
 
 class HashingEmbedder:
@@ -52,21 +61,41 @@ class HashingEmbedder:
             out.append([v / norm for v in vec])
         return out
 
+    def embed_query(self, text: str) -> list[float]:
+        return self.embed([text])[0]
 
-class SentenceTransformerEmbedder:  # pragma: no cover - optional dependency, not exercised in CI
-    def __init__(self, model_name: str, dim: int) -> None:
+
+class SentenceTransformerEmbedder:
+    """Wraps a sentence-transformers model. E5-family models expect "query: " / "passage: " prefixes."""
+
+    def __init__(self, model_name: str, dim: int, batch_size: int = 64) -> None:
+        import torch
         from sentence_transformers import SentenceTransformer
 
-        self._model = SentenceTransformer(model_name)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._model = SentenceTransformer(model_name, device=device)
+        self.device = device
         self.dim = dim
+        self.batch_size = batch_size
         self.name = f"st:{model_name}"
+        e5 = "e5" in model_name.lower()
+        self._query_prefix = "query: " if e5 else ""
+        self._passage_prefix = "passage: " if e5 else ""
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        vectors = self._model.encode(texts, normalize_embeddings=True)
+    def _encode(self, texts: list[str]) -> list[list[float]]:
+        vectors = self._model.encode(
+            texts, normalize_embeddings=True, batch_size=self.batch_size, show_progress_bar=False
+        )
         result = [list(map(float, v)) for v in vectors]
         if result and len(result[0]) != self.dim:
             raise ValueError(f"model returns {len(result[0])} dims but EMBEDDING_DIM={self.dim}")
         return result
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        return self._encode([self._passage_prefix + t for t in texts])
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._encode([self._query_prefix + text])[0]
 
 
 def cosine(a: list[float], b: list[float]) -> float:

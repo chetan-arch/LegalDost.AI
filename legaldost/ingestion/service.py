@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any, Literal
@@ -18,9 +19,10 @@ from sqlalchemy.orm import Session
 
 from legaldost.config import Settings
 from legaldost.db.models import DocumentVersion, IngestionEvent, LegalSource, Passage, utcnow
-from legaldost.ingestion.extract import ExtractionError, extract, sniff_mime
-from legaldost.ingestion.segment import segment
+from legaldost.ingestion.extract import ExtractedDocument, ExtractionError, extract, sniff_mime
+from legaldost.ingestion.segment import Segment, segment
 from legaldost.retrieval.embeddings import Embedder
+from legaldost.retrieval.index import LexicalIndex
 from legaldost.safety import looks_like_injection
 from legaldost.textutil import sha256_text
 
@@ -34,6 +36,22 @@ LegalStatus = Literal[
     "unknown", "in_force", "amended", "partially_in_force", "superseded", "repealed", "withdrawn"
 ]
 VerificationStatus = Literal["unverified", "fetched_unreviewed", "reviewer_verified"]
+
+
+@dataclass
+class PreparedDocument:
+    """Extraction, segmentation and embeddings computed without touching the database.
+
+    Lets bulk imports do the slow part (reading a 1,000-page PDF, running the embedding model)
+    before opening a write transaction, so the live server is not blocked meanwhile.
+    """
+
+    mime: str
+    doc: ExtractedDocument | None = None
+    error: str | None = None
+    segments: list[Segment] = field(default_factory=list)
+    strategy: str = ""
+    embeddings: list[list[float]] = field(default_factory=list)
 
 
 class SourceSpec(BaseModel):
@@ -170,20 +188,37 @@ class IngestionService:
         return source
 
     # -- versions -----------------------------------------------------------------------------
+    def prepare(self, data: bytes, declared_mime: str | None, document_type: str) -> PreparedDocument:
+        """The database-free part of ingestion; pass the result to ``ingest_bytes(prepared=...)``."""
+        try:
+            mime = sniff_mime(data, declared_mime)
+        except ExtractionError as exc:
+            return PreparedDocument(mime="", error=str(exc))  # unknown type: nothing is stored
+        try:
+            doc = extract(data, mime)
+        except ExtractionError as exc:
+            return PreparedDocument(mime=mime, error=str(exc))
+        segments, strategy = segment(doc, document_type)
+        embeddings = self.embedder.embed([seg.text for seg in segments]) if segments else []
+        return PreparedDocument(mime, doc, None, segments, strategy, embeddings)
+
     def ingest_bytes(
         self,
         source: LegalSource,
         data: bytes,
         declared_mime: str | None = None,
         fetched_url: str | None = None,
+        prepared: PreparedDocument | None = None,
     ) -> IngestOutcome:
         max_bytes = self.settings.ingest_max_file_mb * 1024 * 1024
         if not data:
             return self._fail(source, None, "empty document")
         if len(data) > max_bytes:
             return self._fail(source, None, f"document exceeds {self.settings.ingest_max_file_mb} MB")
+        if prepared is not None and not prepared.mime:
+            return self._fail(source, None, prepared.error or "unknown file type")
         try:
-            mime = sniff_mime(data, declared_mime)
+            mime = prepared.mime if prepared is not None else sniff_mime(data, declared_mime)
         except ExtractionError as exc:
             return self._fail(source, None, str(exc))
         digest = hashlib.sha256(data).hexdigest()
@@ -234,7 +269,7 @@ class IngestionService:
         )
         self.session.add(version)
         self.session.flush()
-        return self._process(source, version, data)
+        return self._process(source, version, data, prepared)
 
     def reprocess(self, version_id: str) -> IngestOutcome:
         version = self.session.get(DocumentVersion, version_id)
@@ -245,7 +280,9 @@ class IngestionService:
         data = self._storage_path(version.source_id, version.stored_file).read_bytes()
         if hashlib.sha256(data).hexdigest() != version.content_hash:
             raise ValueError("stored file does not match recorded content hash")
-        for p in list(version.passages):
+        old = list(version.passages)
+        LexicalIndex.remove(self.session, [p.id for p in old])
+        for p in old:
             self.session.delete(p)
         self.session.flush()
         return self._process(version.source, version, data)
@@ -257,40 +294,54 @@ class IngestionService:
             raise ValueError("unsafe storage path")
         return path
 
-    def _process(self, source: LegalSource, version: DocumentVersion, data: bytes) -> IngestOutcome:
-        try:
-            doc = extract(data, version.mime_type)
-        except ExtractionError as exc:
+    def _process(
+        self,
+        source: LegalSource,
+        version: DocumentVersion,
+        data: bytes,
+        prepared: PreparedDocument | None = None,
+    ) -> IngestOutcome:
+        if prepared is None:
+            prepared = self.prepare(data, version.mime_type, source.document_type)
+        if prepared.doc is None:
+            error = prepared.error or "extraction failed"
             version.extraction_status = "failed"
-            version.extraction_error = str(exc)
-            return self._fail(source, version, str(exc))
-        segments, strategy = segment(doc, source.document_type)
+            version.extraction_error = error
+            return self._fail(source, version, error)
+        doc, segments, strategy, embeddings = (
+            prepared.doc,
+            prepared.segments,
+            prepared.strategy,
+            prepared.embeddings,
+        )
         notes = list(doc.notes) + [f"segmentation={strategy}"]
         if strategy == "numbered":
             notes.append("paragraph/section labels derived heuristically from numbering; verify against page")
-        embeddings = self.embedder.embed([s.text for s in segments]) if segments else []
         flagged = 0
+        new_passages: list[Passage] = []
         for i, (seg, emb) in enumerate(zip(segments, embeddings, strict=True)):
             flags = []
             if looks_like_injection(seg.text):
                 flags.append("suspected_instructions")
                 flagged += 1
-            self.session.add(
-                Passage(
-                    version_id=version.id,
-                    source_id=source.id,
-                    ordinal=i,
-                    page_start=seg.page_start,
-                    page_end=seg.page_end,
-                    section_label=seg.label,
-                    locator=seg.locator,
-                    text=seg.text,
-                    text_hash=sha256_text(seg.text),
-                    language=seg.language,
-                    flags=flags,
-                    embedding=emb,
-                )
+            passage = Passage(
+                version_id=version.id,
+                source_id=source.id,
+                ordinal=i,
+                page_start=seg.page_start,
+                page_end=seg.page_end,
+                section_label=seg.label,
+                locator=seg.locator,
+                text=seg.text,
+                text_hash=sha256_text(seg.text),
+                language=seg.language,
+                flags=flags,
+                embedding=emb,
             )
+            self.session.add(passage)
+            new_passages.append(passage)
+        self.session.flush()
+        LexicalIndex.add(self.session, new_passages)
         if flagged:
             notes.append(
                 f"{flagged} passage(s) flagged as containing instruction-like text; excluded from answers"

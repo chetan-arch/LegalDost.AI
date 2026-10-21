@@ -78,6 +78,9 @@ class Settings(BaseSettings):
     retrieval_max_passages: int = 6
     retrieval_candidate_pool: int = 40
     evidence_max_chars_per_passage: int = 1800
+    # With a real semantic model, passages found by meaning alone (no keyword overlap) are kept
+    # only above this cosine similarity.
+    semantic_min_similarity: float = 0.86
 
     # --- Ingestion ----------------------------------------------------------------------------
     ingest_max_file_mb: int = 25
@@ -97,12 +100,15 @@ class Settings(BaseSettings):
             "dpal.kar.nic.in",
             "verdictum.in",
             "www.verdictum.in",
+            "indian-supreme-court-judgments.s3.ap-south-1.amazonaws.com",
+            "indian-high-court-judgments.s3.ap-south-1.amazonaws.com",
             "www.highcourtchd.gov.in",
             "aphc.gov.in",
             "cdn.ncw.gov.in",
             "sclsc.gov.in",
             "www.cra.tn.gov.in",
             "prsindia.org",
+            "www.hptax.gov.in",
             "familycourts.mphc.gov.in",
             "digiscr.sci.gov.in",
         ]
@@ -116,6 +122,8 @@ class Settings(BaseSettings):
 
     # --- Privacy / abuse ----------------------------------------------------------------------
     conversation_retention_hours: int = 72
+    gap_log_enabled: bool = True
+    gap_log_retention_days: int = 30
     rate_limit_messages_per_hour: int = 30
     max_message_chars: int = 2000
 

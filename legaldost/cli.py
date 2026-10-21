@@ -11,7 +11,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from legaldost.config import PROJECT_ROOT, get_settings
-from legaldost.db.models import IngestionEvent, LegalSource, Passage, ProcessedEvent
+from legaldost.db.models import AnswerGap, IngestionEvent, LegalSource, Passage, ProcessedEvent
 from legaldost.db.session import session_scope
 from legaldost.ingestion.fetch import FetchError, fetch
 from legaldost.ingestion.manifest import load_manifest
@@ -226,19 +226,111 @@ def cmd_purge(_: argparse.Namespace) -> int:
         n = ConversationStore(session, settings.conversation_retention_hours).purge_expired()
         cutoff = datetime.now(UTC) - timedelta(days=7)
         m = session.execute(delete(ProcessedEvent).where(ProcessedEvent.received_at < cutoff)).rowcount  # type: ignore[attr-defined]
-    print(f"purged {n} expired conversation(s) and {m} old webhook event id(s)")
+        g = session.execute(delete(AnswerGap).where(AnswerGap.expires_at <= datetime.now(UTC))).rowcount  # type: ignore[attr-defined]
+    print(f"purged {n} expired conversation(s), {m} old webhook event id(s) and {g} expired gap record(s)")
+    return 0
+
+
+def _years(spec: str) -> list[int]:
+    out: list[int] = []
+    for part in spec.split(","):
+        if "-" in part:
+            a, b = part.split("-")
+            out += list(range(int(a), int(b) + 1))
+        else:
+            out.append(int(part))
+    return out
+
+
+def cmd_import_judgments(args: argparse.Namespace) -> int:
+    """Import judgments from the open Supreme Court / High Court datasets (CC-BY-4.0)."""
+    import re as _re
+
+    from legaldost.db.session import get_sessionmaker
+    from legaldost.domain.registry import load_registry
+    from legaldost.ingestion.judgments import JudgmentDatasets, import_judgments
+
+    settings = get_settings()
+    datasets = JudgmentDatasets(settings.data_dir / "datasets")
+    title_filter = _re.compile(args.title, _re.IGNORECASE) if args.title else None
+    totals = {"imported": 0, "skipped": 0, "failed": 0}
+    for year in _years(args.years):
+        records = (
+            datasets.supreme_court(year)
+            if args.court == "sc"
+            else datasets.high_court(year, court=args.hc_code, jurisdiction=args.jurisdiction)
+        )
+        stats = import_judgments(
+            get_sessionmaker(),
+            settings,
+            _svc,
+            load_registry(),
+            records,
+            limit=args.limit_per_year,
+            title_filter=title_filter,
+            progress=lambda s: print(f"  ... {s.imported} imported, {s.failed} failed", flush=True),
+        )
+        totals["imported"] += stats.imported
+        totals["skipped"] += stats.skipped_existing
+        totals["failed"] += stats.failed
+        print(
+            f"{args.court} {year}: {stats.imported} imported, {stats.skipped_existing} already present, "
+            f"{stats.failed} failed (of {stats.seen} matching)",
+            flush=True,
+        )
+    print(f"done: {totals}")
+    return 0
+
+
+def cmd_gaps(args: argparse.Namespace) -> int:
+    """Show what users asked that the assistant could not answer (keywords only)."""
+    from collections import Counter
+    from datetime import UTC, datetime, timedelta
+
+    since = datetime.now(UTC) - timedelta(days=args.days)
+    with session_scope() as session:
+        rows = list(session.scalars(select(AnswerGap).where(AnswerGap.created_at >= since)))
+    if not rows:
+        print(f"no unanswered questions recorded in the last {args.days} days")
+        return 0
+    by_area = Counter((r.domain or "unknown", r.reason) for r in rows)
+    terms = Counter(t for r in rows for t in r.terms)
+    print(f"{len(rows)} unanswered question(s) in the last {args.days} days\n")
+    print("By area and reason:")
+    for (area, reason), n in by_area.most_common():
+        print(f"  {n:>4}  {area:<16} {reason}")
+    print("\nMost common keywords (load sources that cover these):")
+    for term, n in terms.most_common(args.top):
+        print(f"  {n:>4}  {term}")
     return 0
 
 
 def cmd_reindex(_: argparse.Namespace) -> int:
+    from legaldost.retrieval.index import reset_caches
+
     embedder = get_embedder()
     with session_scope() as session:
-        passages = list(session.scalars(select(Passage)))
-        for i in range(0, len(passages), 64):
-            batch = passages[i : i + 64]
-            for p, vec in zip(batch, embedder.embed([p.text for p in batch]), strict=True):
-                p.embedding = vec
-    print(f"re-embedded {len(passages)} passages with {embedder.name}")
+        ids = list(session.scalars(select(Passage.id)))
+    done = 0
+    for i in range(0, len(ids), 512):
+        with session_scope() as session:
+            batch = list(session.scalars(select(Passage).where(Passage.id.in_(ids[i : i + 512]))))
+            for passage, vec in zip(batch, embedder.embed([b.text for b in batch]), strict=True):
+                passage.embedding = vec
+        done += len(batch)
+        print(f"  {done}/{len(ids)}", flush=True)
+    reset_caches()
+    print(f"re-embedded {len(ids)} passages with {embedder.name}")
+    return 0
+
+
+def cmd_index_rebuild(_: argparse.Namespace) -> int:
+    from legaldost.retrieval.index import LexicalIndex, reset_caches
+
+    with session_scope() as session:
+        n = LexicalIndex.rebuild(session)
+    reset_caches()
+    print(f"keyword index rebuilt: {n} passages")
     return 0
 
 
@@ -329,7 +421,22 @@ def build_parser() -> argparse.ArgumentParser:
     ask.add_argument("--session", default="cli-user")
     ask.set_defaults(func=cmd_ask)
     sub.add_parser("purge-expired", help="delete expired conversations").set_defaults(func=cmd_purge)
+    ij = sub.add_parser("import-judgments", help="import judgments from the open SC/HC datasets")
+    ij.add_argument("court", choices=["sc", "hc"])
+    ij.add_argument("--years", required=True, help="e.g. 2012 or 2018-2025 or 2012,2020-2025")
+    ij.add_argument("--limit-per-year", type=int, default=None)
+    ij.add_argument("--title", help="only judgments whose title matches this regular expression")
+    ij.add_argument("--hc-code", default="29_3", help="High Court code in the dataset (29_3 = Karnataka)")
+    ij.add_argument("--jurisdiction", default="IN-KA")
+    ij.set_defaults(func=cmd_import_judgments)
+    gp = sub.add_parser("gaps", help="what users asked that could not be answered (keywords only)")
+    gp.add_argument("--days", type=int, default=30)
+    gp.add_argument("--top", type=int, default=25)
+    gp.set_defaults(func=cmd_gaps)
     sub.add_parser("reindex-embeddings", help="recompute embeddings").set_defaults(func=cmd_reindex)
+    sub.add_parser("index-rebuild", help="rebuild the keyword (full-text) index").set_defaults(
+        func=cmd_index_rebuild
+    )
 
     evp = sub.add_parser("eval").add_subparsers(dest="sub", required=True)
     le = evp.add_parser("legal", help="run the legal evaluation set against the loaded corpus")

@@ -124,3 +124,19 @@ sources:
     status_note: "Replaced the Code of Criminal Procedure from its commencement. Section 144 covers maintenance of wives, children and parents (formerly CrPC s.125)."
     fetch_url: "https://prsindia.org/files/bills_acts/bills_parliament/2023/The%20Bharatiya%20Nagarik%20Suraksha%20Sanhita,%202023.pdf"
     notes: "Fetched 2026-10-21. Act number confirmed from the text."
+
+  # ---------------------------------------------------------------- government
+  - source_key: in-right-to-information-act-2005
+    title: "The Right to Information Act, 2005 (No. 22 of 2005)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (copy hosted by the Himachal Pradesh State Taxes and Excise Department)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [government]
+    identifiers: {act_no: "22 of 2005"}
+    source_url: "https://www.hptax.gov.in/ckfinder/userfiles/files/RTIAct.pdf"
+    host_note: "Reproduction hosted by a Government of Himachal Pradesh department; not the Gazette or India Code copy. Later amendments (e.g. 2019) not checked."
+    languages: [en]
+    legal_status: unknown
+    fetch_url: "https://www.hptax.gov.in/ckfinder/userfiles/files/RTIAct.pdf"
+    notes: "Fetched 2026-10-21. Act number confirmed from the text."

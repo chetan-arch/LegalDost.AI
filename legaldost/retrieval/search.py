@@ -12,13 +12,15 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date
+from pathlib import Path
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from legaldost.db.models import DocumentVersion, LegalSource, Passage
 from legaldost.domain.schemas import RetrievedPassage
-from legaldost.retrieval.embeddings import Embedder, cosine
+from legaldost.retrieval.embeddings import Embedder
+from legaldost.retrieval.index import LexicalIndex, VectorIndex
 from legaldost.textutil import content_tokens, normalize, references_in, stem
 
 EXCLUDED_STATUSES = ("superseded", "repealed", "withdrawn")
@@ -94,6 +96,16 @@ class _Candidate:
     text: str
     section_label: str | None
     embedding: list[float] | None
+    case_key: str = ""  # copies of one judgment (several reporters, re-uploads) share this
+
+
+_CASE_FILLER = {"and", "anr", "ors", "others", "another", "the", "versus", "vs", "v", "of", "m", "s"}
+
+
+def _case_key(title: str) -> str:
+    """'AVISHEK GOENKA versus UNION OF INDIA & ANR.' and '... AND ANR.' name the same case."""
+    words = [w for w in re.findall(r"[a-z]+", title.lower()) if w not in _CASE_FILLER]
+    return "case:" + " ".join(words[:6])
 
 
 def _identifier_matches(identifiers: set[str], passage_text: str, section_label: str | None) -> list[str]:
@@ -108,96 +120,82 @@ def _identifier_matches(identifiers: set[str], passage_text: str, section_label:
 
 
 class HybridRetriever:
-    def __init__(self, session: Session, embedder: Embedder, k_rrf: int = 60) -> None:
+    """Keyword index + vector index -> candidate set -> eligibility filters -> relevance gate -> RRF."""
+
+    def __init__(
+        self,
+        session: Session,
+        embedder: Embedder,
+        k_rrf: int = 60,
+        cache_dir: Path | None = None,
+        lexical_pool: int = 400,
+        vector_pool: int = 200,
+        min_semantic_similarity: float | None = None,
+    ) -> None:
+        from legaldost.config import get_settings
+
+        settings = get_settings()
         self.session = session
         self.embedder = embedder
         self.k_rrf = k_rrf
-        # The default hashing embedder matches surface patterns, not meaning, so it gets a smaller
-        # say in the fused ranking than keyword search. Real semantic models get equal weight.
-        self.vector_weight = 0.3 if embedder.name.startswith("hashing") else 1.0
+        self.lexical_pool = lexical_pool
+        self.vector_pool = vector_pool
+        self.vectors = VectorIndex(cache_dir or settings.data_dir / "index")
+        # The hashing embedder matches surface patterns, not meaning: it only re-ranks keyword hits.
+        # A real semantic model gets an equal say and may also contribute passages on its own when
+        # the similarity is high (this is what links "windshield" to "windscreen").
+        self.semantic = not embedder.name.startswith("hashing")
+        self.vector_weight = 1.0 if self.semantic else 0.3
+        self.min_semantic_similarity = (
+            settings.semantic_min_similarity if min_semantic_similarity is None else min_semantic_similarity
+        )
 
     # -- eligibility ------------------------------------------------------------------------
-    def _eligible(self, filters: RetrievalFilters) -> list[_Candidate]:
-        stmt = (
-            select(Passage, LegalSource)
-            .join(DocumentVersion, Passage.version_id == DocumentVersion.id)
-            .join(LegalSource, Passage.source_id == LegalSource.id)
-            .where(DocumentVersion.is_current.is_(True))
-            .where(DocumentVersion.extraction_status.in_(("succeeded", "partial")))
-            .where(LegalSource.is_available.is_(True))
-        )
-        if not filters.include_superseded:
-            stmt = stmt.where(LegalSource.legal_status.not_in(EXCLUDED_STATUSES))
-        if filters.document_types:
-            stmt = stmt.where(LegalSource.document_type.in_(filters.document_types))
-        out: list[_Candidate] = []
-        for passage, source in self.session.execute(stmt):
-            if "suspected_instructions" in (passage.flags or []):
-                continue
-            if (
-                filters.jurisdictions
-                and source.document_type != "judgment"
-                and source.jurisdiction not in filters.jurisdictions
-            ):
-                continue
-            if filters.domains and not set(filters.domains) & set(source.legal_domains or []):
-                continue
-            if filters.as_of and source.commencement_date and source.commencement_date > filters.as_of:
-                continue
-            out.append(
-                _Candidate(
+    def _eligible(self, filters: RetrievalFilters, ids: set[str]) -> dict[str, _Candidate]:
+        out: dict[str, _Candidate] = {}
+        id_list = list(ids)
+        for i in range(0, len(id_list), 500):
+            stmt = (
+                select(Passage, LegalSource)
+                .join(DocumentVersion, Passage.version_id == DocumentVersion.id)
+                .join(LegalSource, Passage.source_id == LegalSource.id)
+                .where(Passage.id.in_(id_list[i : i + 500]))
+                .where(DocumentVersion.is_current.is_(True))
+                .where(DocumentVersion.extraction_status.in_(("succeeded", "partial")))
+                .where(LegalSource.is_available.is_(True))
+            )
+            if not filters.include_superseded:
+                stmt = stmt.where(LegalSource.legal_status.not_in(EXCLUDED_STATUSES))
+            if filters.document_types:
+                stmt = stmt.where(LegalSource.document_type.in_(filters.document_types))
+            for passage, source in self.session.execute(stmt):
+                if "suspected_instructions" in (passage.flags or []):
+                    continue
+                if (
+                    filters.jurisdictions
+                    and source.document_type != "judgment"
+                    and source.jurisdiction not in filters.jurisdictions
+                ):
+                    continue
+                if filters.domains and not set(filters.domains) & set(source.legal_domains or []):
+                    continue
+                if filters.as_of and source.commencement_date and source.commencement_date > filters.as_of:
+                    continue
+                case_key = _case_key(source.title) if source.document_type == "judgment" else source.id
+                out[passage.id] = _Candidate(
                     passage.id,
                     source.id,
                     passage.version_id,
                     passage.text,
                     passage.section_label,
-                    passage.embedding,
+                    None,
+                    case_key,
                 )
-            )
         return out
-
-    # -- lexical ------------------------------------------------------------------------------
-    @staticmethod
-    def _bm25(
-        query: dict[str, float], docs: list[list[str]], k1: float = 1.2, b: float = 0.75
-    ) -> list[float]:
-        n = len(docs)
-        if n == 0:
-            return []
-        avgdl = sum(len(d) for d in docs) / n or 1.0
-        df: Counter[str] = Counter()
-        for d in docs:
-            df.update(set(d))
-        scores = []
-        for d in docs:
-            tf = Counter(d)
-            s = 0.0
-            for term, weight in query.items():
-                if term not in tf:
-                    continue
-                idf = math.log(1 + (n - df[term] + 0.5) / (df[term] + 0.5))
-                f = tf[term]
-                s += weight * idf * f * (k1 + 1) / (f + k1 * (1 - b + b * len(d) / avgdl))
-            scores.append(s)
-        return scores
-
-    def _lexical_portable(self, spec: QuerySpec, cands: list[_Candidate]) -> dict[str, float]:
-        weights = spec.weighted_terms()
-        docs = [[stem(t) for t in content_tokens(f"{c.section_label or ''} {c.text}")] for c in cands]
-        scores = self._bm25(weights, docs)
-        primary = {stem(t) for t in content_tokens(spec.text)}
-        result = {}
-        for cand, doc, score in zip(cands, docs, scores, strict=True):
-            matched = set(doc) & set(weights)
-            # Require at least two distinct query terms, or one term from the user's own words
-            # plus one expansion term, to reduce single-word coincidences.
-            if score > 0 and (len(matched) >= 2 or (matched & primary and len(primary) == 1)):
-                result[cand.passage_id] = score
-        return result
 
     @staticmethod
     def _relevant(spec: QuerySpec, cand: _Candidate) -> bool:
-        """Relevance gate applied to every lexical hit (both backends).
+        """Relevance gate applied to every keyword hit (both backends).
 
         A passage must contain enough of the user's distinctive words (not generic legal words
         like "law" or "person"), and at least two query terms overall including expansion terms.
@@ -223,18 +221,10 @@ class HybridRetriever:
         # common words ("police" ... "fine") are not enough on their own.
         return phrase_hit or matched_extra >= 1
 
-    def _lexical_postgres(self, spec: QuerySpec, cands: list[_Candidate]) -> dict[str, float]:
-        terms = sorted({t for t in spec.weighted_terms() if re.fullmatch(r"[a-z0-9]+", t)})
-        if not terms:
-            return {}
-        rows = self.session.execute(
-            text(
-                "SELECT id, ts_rank_cd(tsv, to_tsquery('english', :q)) AS r FROM passages "
-                "WHERE tsv @@ to_tsquery('english', :q) AND id = ANY(:ids)"
-            ),
-            {"q": " | ".join(terms), "ids": [c.passage_id for c in cands]},
-        )
-        return {row.id: float(row.r) for row in rows}
+    def _query_words(self, spec: QuerySpec) -> list[str]:
+        words = content_tokens(" ".join([spec.text, *spec.expansion_terms]))
+        useful = [w for w in words if stem(w) not in GENERIC_TERMS]
+        return useful or words
 
     # -- search -------------------------------------------------------------------------------
     def search(
@@ -244,42 +234,42 @@ class HybridRetriever:
         limit: int = 6,
         pool: int = 40,
         max_per_source: int = 3,
+        max_per_case: int = 2,
+        reserve_law: int = 2,
     ) -> list[RetrievedPassage]:
-        cands = self._eligible(filters)
+        lex_raw = LexicalIndex.search(self.session, self._query_words(spec), self.lexical_pool)
+        qvec = self.embedder.embed_query(" ".join([spec.text, *spec.expansion_terms]))
+        vec_raw = self.vectors.search(self.session, qvec, self.vector_pool)
+        cands = self._eligible(filters, set(lex_raw) | set(vec_raw))
         if not cands:
             return []
-        dialect = self.session.get_bind().dialect.name
-        lexical = (
-            self._lexical_postgres(spec, cands)
-            if dialect == "postgresql"
-            else self._lexical_portable(spec, cands)
+        lexical = {pid: s for pid, s in lex_raw.items() if pid in cands and self._relevant(spec, cands[pid])}
+        vector = {pid: s for pid, s in vec_raw.items() if pid in cands}
+        semantic_only = (
+            {pid for pid, s in vector.items() if s >= self.min_semantic_similarity and pid not in lexical}
+            if self.semantic
+            else set()
         )
-        by_id_all = {c.passage_id: c for c in cands}
-        lexical = {pid: s for pid, s in lexical.items() if self._relevant(spec, by_id_all[pid])}
         identifiers = spec.identifiers()
         ident_hits = {
-            c.passage_id: hits
-            for c in cands
+            pid: hits
+            for pid, c in cands.items()
             if (hits := _identifier_matches(identifiers, c.text, c.section_label))
         }
-        qvec = self.embedder.embed([" ".join([spec.text, *spec.expansion_terms])])[0]
-        vector = {c.passage_id: cosine(qvec, c.embedding) for c in cands if c.embedding}
-
         lex_rank = {
             pid: i for i, pid in enumerate(sorted(lexical, key=lexical.__getitem__, reverse=True)[:pool])
         }
         vec_rank = {
             pid: i for i, pid in enumerate(sorted(vector, key=vector.__getitem__, reverse=True)[:pool])
         }
-        by_id = {c.passage_id: c for c in cands}
         fused: list[RetrievedPassage] = []
-        for pid in set(lex_rank) | set(ident_hits):
+        for pid in set(lex_rank) | set(ident_hits) | semantic_only:
             score = 1.0 / (self.k_rrf + lex_rank.get(pid, pool))
             if pid in vec_rank:
                 score += self.vector_weight / (self.k_rrf + vec_rank[pid])
             if pid in ident_hits:
                 score += 0.02
-            c = by_id[pid]
+            c = cands[pid]
             fused.append(
                 RetrievedPassage(
                     passage_id=pid,
@@ -293,12 +283,26 @@ class HybridRetriever:
             )
         fused.sort(key=lambda r: r.score, reverse=True)
         per_source: Counter[str] = Counter()
+        per_case: Counter[str] = Counter()
+
+        def is_judgment(r: RetrievedPassage) -> bool:
+            return cands[r.passage_id].case_key.startswith("case:")
+
+        # The law itself comes first: keep up to `reserve_law` slots for Acts, rules and
+        # notifications, so a large judgment collection cannot crowd out the statute it interprets.
+        law_first = [r for r in fused if not is_judgment(r)][:reserve_law]
+        ordered = law_first + [r for r in fused if r not in law_first]
         results = []
-        for r in fused:
-            if per_source[r.source_id] >= max_per_source:
+        for r in ordered:
+            case = cands[r.passage_id].case_key
+            if per_source[r.source_id] >= max_per_source or (
+                is_judgment(r) and per_case[case] >= max_per_case
+            ):
                 continue
             per_source[r.source_id] += 1
+            per_case[case] += 1
             results.append(r)
             if len(results) >= limit:
                 break
+        results.sort(key=lambda r: r.score, reverse=True)
         return results

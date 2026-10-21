@@ -6,6 +6,8 @@
 review_status: unreviewed
 
 terms:
+  rti: ["right to information", "request for obtaining information", "public information officer"]
+  "rti application": ["request for obtaining information", "public information officer", "fee"]
   helmet: ["protective headgear", "motor cycle", "pillion", "section 129"]
   helmets: ["protective headgear", "motor cycle", "pillion", "section 129"]
   "without helmet": ["protective headgear", "motor cycle", "section 129"]
@@ -91,3 +93,13 @@ terms:
   harassment: ["harassment", "criminal intimidation"]
   murder: ["murder", "culpable homicide"]
   "hit and run": ["death by negligence", "rash or negligent"]
+  # vehicle glass wording people use vs the Rules / judgments
+  windshield: ["windscreen", "safety glass", "safety glazing"]
+  "rear windshield": ["rear window", "windscreen", "safety glass"]
+  "back glass": ["rear window", "safety glass"]
+  "sun shade": ["film", "other material", "safety glass", "visual transmission of light"]
+  sunshade: ["film", "other material", "safety glass", "visual transmission of light"]
+  "sun shades": ["film", "other material", "safety glass", "visual transmission of light"]
+  mesh: ["film", "other material", "safety glass"]
+  curtain: ["film", "other material", "safety glass"]
+  curtains: ["film", "other material", "safety glass"]

@@ -11,7 +11,12 @@ EXCLUDED_STATUSES = ("superseded", "repealed", "withdrawn")
 
 
 def corpus_domains(session: Session) -> set[str]:
-    """Legal domains that have at least one available, current, successfully extracted source."""
+    """Legal domains that have at least one available, current, successfully extracted law text.
+
+    Judgments do not count on their own: answering, say, an unpaid-salary question from whichever
+    rulings happen to mention salary, without the Act itself, would mislead. They supplement areas
+    whose statutes, rules or notifications are loaded.
+    """
     stmt = (
         select(LegalSource.legal_domains)
         .join(DocumentVersion, DocumentVersion.source_id == LegalSource.id)
@@ -19,6 +24,7 @@ def corpus_domains(session: Session) -> set[str]:
         .where(DocumentVersion.extraction_status.in_(("succeeded", "partial")))
         .where(LegalSource.is_available.is_(True))
         .where(LegalSource.legal_status.not_in(EXCLUDED_STATUSES))
+        .where(LegalSource.document_type != "judgment")
     )
     domains: set[str] = set()
     for (row,) in session.execute(stmt):

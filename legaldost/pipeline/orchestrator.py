@@ -11,12 +11,13 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from legaldost.config import Settings
-from legaldost.db.models import AnswerLog, Conversation
+from legaldost.db.models import AnswerGap, AnswerLog, Conversation
 from legaldost.decision.base import DecisionEngine, EvidenceCandidate, RoutingDecision
 from legaldost.domain.facts import JURISDICTION_NAMES, extract_facts
 from legaldost.domain.registry import (
@@ -28,7 +29,7 @@ from legaldost.domain.registry import (
     load_contacts,
     load_legal_terms,
 )
-from legaldost.domain.schemas import AnswerMode, DraftAnswer, LegalAnswer
+from legaldost.domain.schemas import AnswerMode, DraftAnswer, EvidenceStatus, LegalAnswer
 from legaldost.language import detect_language, requested_language
 from legaldost.llm.base import LLMError, LLMProvider, MeteredLLM, UsageLedger
 from legaldost.pipeline.conversation import ConversationStore
@@ -162,6 +163,7 @@ class AnswerPipeline:
             )
             result.text += "\n\n⚠️ " + t(key, language, legal_aid=aid)
         result.text = prefix + result.text
+        self._log_gap(text, result)
         return self._done(conv, result, started)
 
     # ------------------------------------------------------------------------------------------
@@ -402,6 +404,9 @@ class AnswerPipeline:
                 self.session, self.settings.llm_monthly_budget_usd, self.settings.llm_max_calls_per_question
             )
             llm_gen = LLMGenerator(MeteredLLM(self.provider, ledger))
+            # Release the SQLite write lock before a call that can take a minute on a local model,
+            # so imports and other conversations are not blocked meanwhile.
+            self.session.commit()
             try:
                 draft = llm_gen.generate(
                     question if question == latest else query_text,
@@ -465,7 +470,22 @@ class AnswerPipeline:
             language,
             high_risk=topic.risk == "high",
         )
-        if not claims:
+        # Quotes that matched words but not the question are not an answer: in the catch-all area,
+        # or when the model's own summary could not be backed by any verified point, say so instead.
+        off_target = (
+            status == EvidenceStatus.NONE and (topic.domain == GENERAL_DOMAIN or report.summary_unsupported)
+        ) or (
+            # In the catch-all, a model draft that failed verification means the passages did not
+            # answer the question; raw quotes from them would only look like an answer.
+            topic.domain == GENERAL_DOMAIN
+            and (
+                report.summary_unsupported
+                or any(f in report.flags for f in ("llm_draft_blocked", "llm_draft_no_valid_claims"))
+            )
+        )
+        if not claims or off_target:
+            if off_target:
+                report.flags = list(dict.fromkeys([*report.flags, "abstained_off_target"]))
             answer = LegalAnswer(
                 kind="abstain",
                 language=language,  # type: ignore[arg-type]
@@ -506,6 +526,39 @@ class AnswerPipeline:
         return answer, diag
 
     # ------------------------------------------------------------------------------------------
+    def _log_gap(self, text: str, reply: Reply) -> None:
+        """Record unanswered questions as keywords only, so the operator knows what to load next."""
+        if not self.settings.gap_log_enabled:
+            return
+        answer = reply.answer
+        flags = answer.validation.flags if answer else []
+        if reply.outcome in ("abstain", "unsupported_domain", "unknown_topic"):
+            reason = reply.outcome
+        elif (
+            answer
+            and answer.kind == "answer"
+            and answer.generator == "extractive"
+            and any(f.startswith("llm_draft") for f in flags)
+        ):
+            reason = "model_answer_blocked"
+        else:
+            return
+        terms = QuerySpec(text).distinctive_terms()
+        keep = sorted(t for t in terms if len(t) >= 3 and not t.isdigit())[:8]
+        now = datetime.now(UTC)
+        self.session.add(
+            AnswerGap(
+                channel=self.channel,
+                outcome=reply.outcome,
+                reason=reason,
+                topic=answer.topic if answer else (reply.routing.topic if reply.routing else None),
+                domain=answer.domain if answer else (reply.routing.domain if reply.routing else None),
+                terms=keep,
+                created_at=now,
+                expires_at=now + timedelta(days=self.settings.gap_log_retention_days),
+            )
+        )
+
     def _done(self, conv: Conversation, reply: Reply, started: float) -> Reply:
         latency = int((time.monotonic() - started) * 1000)
         answer = reply.answer

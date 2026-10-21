@@ -18,7 +18,8 @@ def make_engine(url: str) -> Engine:
             from pathlib import Path
 
             Path(url.split("///", 1)[1]).parent.mkdir(parents=True, exist_ok=True)
-        engine = create_engine(url, connect_args={"check_same_thread": False})
+        # timeout: wait for another writer (a bulk import, the live server) instead of failing at once.
+        engine = create_engine(url, connect_args={"check_same_thread": False, "timeout": 60})
 
         @event.listens_for(engine, "connect")
         def _sqlite_pragmas(dbapi_conn, _record):
