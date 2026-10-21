@@ -342,6 +342,10 @@ class AnswerPipeline:
             jurisdictions=["IN", jurisdiction] if jurisdiction else ["IN"],
             domains=None if topic.domain == GENERAL_DOMAIN else [topic.domain],
         )
+        # Save conversation state before searching: the first search in a process builds the
+        # vector index from every stored embedding (a minute or more on a large corpus) and must
+        # not hold the SQLite write lock while it does.
+        self.session.commit()
         retriever = HybridRetriever(self.session, self.embedder)
         local_model = self.provider is not None and self.provider.name == "ollama"
         max_passages = (

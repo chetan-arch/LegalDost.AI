@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from legaldost.db.models import LegalSource, Passage
@@ -48,6 +49,32 @@ def binding_note(source: LegalSource, user_jurisdiction: str | None) -> str | No
     return None
 
 
+CHAPTER_HEADING = re.compile(
+    r"\b(CHAPTER|PART)\s+([IVXLC]+[A-Z]?)\s*\n+\s*([^\n]{3,120}(?:\n[A-Z][A-Z ,'-]{3,80}\b)?)"
+)
+
+
+def chapter_of(session: Session, passage: Passage) -> str | None:
+    """The chapter (or part) heading a statute passage falls under, from earlier passages.
+
+    Headings sit inside passage text where the chapter starts; a heading inside this passage
+    usually opens the *next* chapter, so only earlier passages are searched.
+    """
+    earlier = session.scalars(
+        select(Passage.text)
+        .where(Passage.version_id == passage.version_id, Passage.ordinal < passage.ordinal)
+        .where(Passage.text.contains("CHAPTER") | Passage.text.contains("PART "))
+        .order_by(Passage.ordinal.desc())
+        .limit(80)  # page headers ("[PART II— SEC. 1]") also contain PART: skip past them
+    )
+    for text_value in earlier:
+        matches = list(CHAPTER_HEADING.finditer(text_value))
+        if matches:
+            kind, number, title = matches[-1].groups()
+            return f"{kind} {number} — {' '.join(title.split())}"
+    return None
+
+
 def build_packet(
     session: Session,
     query: str,
@@ -87,9 +114,34 @@ def build_packet(
                 host_note=source.host_note,
                 flags=list(passage.flags or []),
                 binding_note=binding_note(source, user_jurisdiction),
+                part_of=chapter_of(session, passage)
+                if source.document_type in ("statute", "rules")
+                else None,
             )
         )
+    items = prefer_general_provisions(items)
     return EvidencePacket(query=query, jurisdiction=user_jurisdiction, items=items)
+
+
+LIMITED_SCOPE = re.compile(r"\bIN CERTAIN\b|\bSPECIAL PROVISIONS\b", re.IGNORECASE)
+
+
+def prefer_general_provisions(items: list[EvidenceItem]) -> list[EvidenceItem]:
+    """Drop a special-scope provision when the same Act's general provision is also present.
+
+    E.g. the Industrial Relations Code's Chapter X ("... in certain establishments": three months'
+    notice) next to Chapter IX (one month's notice). We rarely know whether the user's employer is
+    covered, and small local models apply the stricter rule to everyone, so keep the general one.
+    """
+    general_sources = {i.source_id for i in items if i.part_of and not LIMITED_SCOPE.search(i.part_of)}
+    kept = [
+        i
+        for i in items
+        if not (i.part_of and LIMITED_SCOPE.search(i.part_of) and i.source_id in general_sources)
+    ]
+    if len(kept) == len(items):
+        return items
+    return [i.model_copy(update={"evidence_id": f"E{n}"}) for n, i in enumerate(kept, start=1)]
 
 
 def reorder(packet: EvidencePacket, order: list[str]) -> EvidencePacket:

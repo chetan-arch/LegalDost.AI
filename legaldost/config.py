@@ -110,6 +110,8 @@ class Settings(BaseSettings):
             "prsindia.org",
             "www.hptax.gov.in",
             "familycourts.mphc.gov.in",
+            "www.labour.gov.in",
+            "www.livelaw.in",
             "digiscr.sci.gov.in",
         ]
     )

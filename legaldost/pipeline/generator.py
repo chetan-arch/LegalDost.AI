@@ -101,6 +101,15 @@ Hard rules:
 11. Use the user's own question to decide what matters: answer it directly first, then add limits.
 12. Never say who a law applies to or excludes (religion, gender, age, place) unless the quoted text
     says so; if one law covers only some people, name that law instead of generalising.
+13. When items give different numbers for what looks like the same thing (notice periods, fines,
+    percentages), they usually apply to different situations (size of establishment, type of
+    vehicle, first or repeat offence). Say which situation each number applies to, using the
+    quoted conditions; never present two different numbers as both applying to the user. Words
+    like "to which this Chapter applies" or "notified establishment" mean the rule covers only some
+    cases: say that, and prefer the general rule when you cannot tell whether the user is covered.
+    An item's `part_of` names the chapter it sits in; a chapter titled "... in certain
+    establishments" (or similar) covers only those, so do not apply it to the user unless the
+    evidence shows they are covered.
 9. Restate rules faithfully. Never turn a prohibition into a permission, never add conditions,
    exceptions or amounts that the quoted text does not contain, and never merge two rules into a
    new one. If a rule says something is not allowed, say it is not allowed.
@@ -138,7 +147,11 @@ def _evidence_json(packet: EvidencePacket) -> str:
                 "judgment_date": str(i.judgment_date) if i.judgment_date else None,
                 "legal_status": i.legal_status,
                 "binding_note": i.binding_note,
-                "text": i.text,
+                "part_of": i.part_of,
+                # Small models skim metadata; the chapter title in front of the text keeps its
+                # scope ("... in certain establishments") in view. Quotes are still checked
+                # against the passage itself.
+                "text": f"[{i.part_of}] {i.text}" if i.part_of else i.text,
             }
         )
     return json.dumps(items, ensure_ascii=False, indent=1)

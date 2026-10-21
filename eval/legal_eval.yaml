@@ -67,6 +67,16 @@ cases:
           allowed_status: [partially_supported, no_reliable_evidence]
           expected_sources: [kl-hc-2024-ker-68346-safety-glazing]
 
+  - id: tint-en-006
+    category: statutory
+    description: "The user's own question: Rule 100 as substituted by G.S.R. 457(E) (70% / 50% VLT) is cited."
+    turns:
+      - user: "I have a sun shade mesh which is company fitted in my rear back windshield in Karnataka and the police is trying to fine me for it, is this illegal?"
+        expect:
+          outcome: [answer]
+          expected_sources: [in-gazette-cmvr-seventh-amendment-2020-gsr-457e]
+          must_not_contain: ["guaranteed", "you will be fined"]
+
   - id: tint-en-005
     category: unsupported_conclusion
     jurisdiction: IN-KA
@@ -158,11 +168,25 @@ cases:
         expect: {outcome: [abstain]}
 
   - id: employment-en-001
-    category: unsupported_domain
-    description: "Employment law not loaded yet: say so plainly instead of guessing."
+    category: statutory
+    description: "Unpaid salary is answered from the Code on Wages, 2019 (loaded 2026-10-21)."
     turns:
       - user: "My employer has not paid my salary for two months in Bengaluru. What can I do?"
-        expect: {outcome: [unsupported_domain]}
+        expect:
+          outcome: [answer]
+          expected_sources: [in-code-on-wages-2019]
+
+  - id: employment-en-002
+    category: incorrect_assumption
+    description: >-
+      Dismissal without notice: the general rule (IR Code s.70, one month's notice) applies; the
+      three-month rule in Chapter X covers only certain establishments and must not be applied.
+    turns:
+      - user: "I was fired without notice after 3 years in a factory in Karnataka. Is that allowed?"
+        expect:
+          outcome: [answer]
+          expected_sources: [in-industrial-relations-code-2020]
+          must_not_contain: ["three months' notice", "three month's notice", "guaranteed"]
 
   - id: traffic-en-helmet-001
     category: statutory
@@ -248,6 +272,7 @@ cases:
 
   - id: tenancy-en-001
     category: unsupported_domain
+    description: "Karnataka Rent Act not loaded yet (India Code unreachable on 2026-10-21)."
     turns:
       - user: "My landlord is not returning my deposit after I moved out. What can I do?"
         expect: {outcome: [unsupported_domain]}

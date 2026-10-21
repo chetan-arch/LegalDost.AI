@@ -102,6 +102,17 @@ class _Candidate:
 _CASE_FILLER = {"and", "anr", "ors", "others", "another", "the", "versus", "vs", "v", "of", "m", "s"}
 
 
+def _phrase_matches(terms: list[str], seq: list[str]) -> int:
+    """How many distinct multi-word terms occur as consecutive (stemmed) words in ``seq``."""
+    text = " " + " ".join(seq) + " "
+    found = set()
+    for term in terms:
+        words = [stem(t) for t in content_tokens(term)]
+        if len(words) >= 2 and f" {' '.join(words)} " in text:
+            found.add(tuple(words))
+    return len(found)
+
+
 def _case_key(title: str) -> str:
     """'AVISHEK GOENKA versus UNION OF INDIA & ANR.' and '... AND ANR.' name the same case."""
     words = [w for w in re.findall(r"[a-z]+", title.lower()) if w not in _CASE_FILLER]
@@ -207,13 +218,18 @@ class HybridRetriever:
         # them relevance rests on the topic's English search terms instead.
         distinctive = {t for t in distinctive if re.match(r"[a-z0-9]", t)}
         matched_extra = len((expansion - distinctive) & doc)
+        seq = [stem(t) for t in content_tokens(cand.text)]
+        # Statutes rarely use the user's own words ("sun shade", "windshield"). Two different
+        # curated multi-word legal phrases ("safety glazing", "visual transmission of light")
+        # appearing verbatim are strong evidence on their own.
+        if _phrase_matches(spec.expansion_terms, seq) >= 2:
+            return True
         if not distinctive:
             return matched_extra >= 2
         matched_user = len(distinctive & doc)
         needed = max(1, math.ceil(spec.min_coverage * len(distinctive)))
         if not (matched_user >= needed and matched_user + matched_extra >= 2):
             return False
-        seq = [stem(t) for t in content_tokens(cand.text)]
         phrase_hit = bool(spec.phrases() & set(zip(seq, seq[1:], strict=False)))
         if spec.require_phrase:
             return phrase_hit
@@ -234,8 +250,8 @@ class HybridRetriever:
         limit: int = 6,
         pool: int = 40,
         max_per_source: int = 3,
-        max_per_case: int = 2,
-        reserve_law: int = 2,
+        max_per_case: int = 1,
+        reserve_law: int = 3,
     ) -> list[RetrievedPassage]:
         lex_raw = LexicalIndex.search(self.session, self._query_words(spec), self.lexical_pool)
         qvec = self.embedder.embed_query(" ".join([spec.text, *spec.expansion_terms]))

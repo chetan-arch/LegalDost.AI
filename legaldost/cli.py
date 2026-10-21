@@ -15,7 +15,7 @@ from legaldost.db.models import AnswerGap, IngestionEvent, LegalSource, Passage,
 from legaldost.db.session import session_scope
 from legaldost.ingestion.fetch import FetchError, fetch
 from legaldost.ingestion.manifest import load_manifest
-from legaldost.ingestion.service import IngestionService
+from legaldost.ingestion.service import IngestionService, IngestOutcome
 from legaldost.retrieval.embeddings import get_embedder
 
 
@@ -34,6 +34,15 @@ def cmd_db_upgrade(_: argparse.Namespace) -> int:
     return 0
 
 
+def _ingest_prepared(
+    svc: IngestionService, source: LegalSource, data: bytes, mime: str | None, url: str | None
+) -> IngestOutcome:
+    """Extract and embed first (no database writes), then store in one short transaction."""
+    svc.session.commit()
+    prepared = svc.prepare(data, mime, source.document_type)
+    return svc.ingest_bytes(source, data, mime, fetched_url=url, prepared=prepared)
+
+
 def cmd_ingest_manifest(args: argparse.Namespace) -> int:
     manifest = load_manifest(Path(args.path))
     settings = get_settings()
@@ -42,6 +51,9 @@ def cmd_ingest_manifest(args: argparse.Namespace) -> int:
         with session_scope() as session:
             svc = _svc(session)
             source = svc.register(entry.source)
+            # Save the registration now: downloads and PDF extraction below can take minutes and
+            # must not hold the database write lock (the live server and imports share it).
+            session.commit()
             if args.register_only:
                 print(f"registered  {entry.source.source_key}")
                 continue
@@ -50,7 +62,7 @@ def cmd_ingest_manifest(args: argparse.Namespace) -> int:
             if local is not None and base not in local.parents:
                 outcome = svc.record_error(source, "local_file must stay inside the manifest's folder")
             elif local is not None and local.is_file():
-                outcome = svc.ingest_bytes(source, local.read_bytes(), None, fetched_url=None)
+                outcome = _ingest_prepared(svc, source, local.read_bytes(), None, None)
             elif local is not None and not entry.fetch_url:
                 outcome = svc.record_error(source, f"local file not found: {entry.local_file}")
             elif entry.fetch_url:
@@ -61,9 +73,7 @@ def cmd_ingest_manifest(args: argparse.Namespace) -> int:
                         settings.ingest_max_file_mb * 1024 * 1024,
                         settings.ingest_request_interval_seconds,
                     )
-                    outcome = svc.ingest_bytes(
-                        source, result.data, result.content_type, fetched_url=result.url
-                    )
+                    outcome = _ingest_prepared(svc, source, result.data, result.content_type, result.url)
                 except FetchError as exc:
                     outcome = svc.record_error(source, f"fetch failed: {exc}")
             else:
@@ -109,7 +119,7 @@ def cmd_ingest_fetch(args: argparse.Namespace) -> int:
                 settings.ingest_max_file_mb * 1024 * 1024,
                 settings.ingest_request_interval_seconds,
             )
-            outcome = svc.ingest_bytes(source, result.data, result.content_type, fetched_url=result.url)
+            outcome = _ingest_prepared(svc, source, result.data, result.content_type, result.url)
         except FetchError as exc:
             outcome = svc.record_error(source, f"fetch failed: {exc}")
     print(outcome.model_dump_json(indent=2))

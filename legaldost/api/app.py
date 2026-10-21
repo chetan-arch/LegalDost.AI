@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+import threading
+
 from fastapi import FastAPI
 
 from legaldost import __version__
@@ -10,6 +13,8 @@ from legaldost.api.services import Services, build_services
 from legaldost.config import get_settings
 from legaldost.db.session import get_sessionmaker
 from legaldost.logging_setup import configure_logging
+
+log = logging.getLogger(__name__)
 
 
 def create_app(services: Services | None = None) -> FastAPI:
@@ -49,5 +54,20 @@ def create_app(services: Services | None = None) -> FastAPI:
     return app
 
 
+def _warm_up(services: Services) -> None:
+    """Load the embedding model and build the vector index before the first message arrives."""
+    from legaldost.retrieval.search import HybridRetriever
+
+    try:
+        with services.sessionmaker() as session:
+            retriever = HybridRetriever(session, services.embedder)
+            retriever.vectors.search(session, services.embedder.embed_query("warm up"), 1)
+        log.info("search index warmed up")
+    except Exception:  # noqa: BLE001 - warm-up is best effort; the first request retries
+        log.exception("search warm-up failed")
+
+
 def app_factory() -> FastAPI:  # for `uvicorn --factory legaldost.api.app:app_factory`
-    return create_app()
+    app = create_app()
+    threading.Thread(target=_warm_up, args=(app.state.services,), daemon=True, name="warm-up").start()
+    return app

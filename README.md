@@ -204,12 +204,28 @@ How judgments are used:
 * Judgments never make an area "supported" on their own. An area such as employment stays
   unsupported until its Act or rules are loaded, so the bot does not answer an unpaid-salary question
   from whichever rulings happen to mention salary.
-* The law comes first: up to two evidence slots are kept for Acts, rules and notifications whenever
+* The law comes first: up to three evidence slots are kept for Acts, rules and notifications whenever
   they match, and judgments fill the rest.
-* Each case counts once: copies of the same judgment (different reporters, re-uploads) share at most
-  two evidence slots.
+* Each case counts once: copies of the same judgment (different reporters, re-uploads) share a
+  single evidence slot, so an old ruling cannot crowd out a newer one on the amended rule.
 * In the catch-all area, when the model's summary cannot be verified against the quotes, the bot
   says it has no reliable source instead of showing loosely related quotes.
+
+How statute text is used:
+
+* Each statute passage carries the chapter it sits in (for example "CHAPTER X — Special
+  provisions … in certain establishments"), shown to the model with the text.
+* When the evidence holds both a general provision and a special-scope one from the same Act
+  (one month's notice under the Industrial Relations Code s.70 against three months under
+  Chapter X), the special one is dropped: the bot rarely knows whether the user is covered.
+* Two different curated legal phrases ("safety glazing", "visual transmission of light") found
+  word for word make a passage relevant even when it shares none of the user's own words.
+
+Sources added in `knowledge/sources/labour_tenancy_traffic.yaml`: the Code on Wages, 2019
+(Ministry of Labour copy), the Industrial Relations Code, 2020 (PRS copy; both Codes took effect
+on 21 November 2025 per PIB), and the 2020 substitution of CMVR Rule 100 (G.S.R. 457(E), Gazette
+text hosted by LiveLaw). The Karnataka Rent Act, 1999 is registered but India Code was
+unreachable; load it later with `legaldost ingest fetch ka-karnataka-rent-act-1999`.
 
 **Semantic search on the GPU.** `EMBEDDING_BACKEND=sentence-transformers` with
 `EMBEDDING_MODEL=intfloat/multilingual-e5-small` (`EMBEDDING_DIM=384`) runs on CUDA when

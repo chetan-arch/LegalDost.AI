@@ -152,3 +152,67 @@ def test_case_key_groups_copies_of_one_judgment() -> None:
         "AVISHEK GOENKA versus UNION OF INDIA & ANR."
     )
     assert _case_key("A versus STATE OF KERALA") != _case_key("B versus STATE OF KERALA")
+
+
+def test_statute_passages_know_their_chapter(session, ingest) -> None:
+    from legaldost.pipeline.evidence import chapter_of
+
+    src = ingest.register(_spec("chaptered-code", document_type="statute"))
+    ingest.ingest_bytes(
+        src,
+        b"CHAPTER I\nPRELIMINARY\n1. Title. Example code for tests only.\n"
+        b"2. Notice. A worker shall be given one month's notice.\n"
+        b"CHAPTER II\nSPECIAL PROVISIONS IN CERTAIN\nESTABLISHMENTS\n"
+        b"3. Longer notice. A worker in such an establishment shall be given three months' notice.\n",
+        "text/plain",
+    )
+    session.flush()
+    passages = {
+        p.section_label: p for p in session.scalars(select(Passage).where(Passage.source_id == src.id))
+    }
+    assert chapter_of(session, passages["3"]) == "CHAPTER II — SPECIAL PROVISIONS IN CERTAIN ESTABLISHMENTS"
+    # The heading at the end of section 2's passage opens the next chapter, not section 2's own.
+    assert not (chapter_of(session, passages["2"]) or "").startswith("CHAPTER II")
+
+
+def test_special_scope_provision_dropped_when_general_one_present() -> None:
+    from legaldost.domain.schemas import EvidenceItem
+    from legaldost.pipeline.evidence import prefer_general_provisions
+
+    def item(eid: str, source: str, part_of: str | None) -> EvidenceItem:
+        return EvidenceItem(
+            evidence_id=eid,
+            passage_id=eid,
+            source_id=source,
+            source_key=source,
+            title="t",
+            issuing_authority="a",
+            document_type="statute",
+            source_category="primary_official",
+            jurisdiction="IN",
+            court_level=None,
+            locator="s. 1",
+            page_start=None,
+            page_end=None,
+            url="https://example.test",
+            text="x",
+            language="en",
+            publication_date=None,
+            commencement_date=None,
+            judgment_date=None,
+            legal_status="unknown",
+            verification_status="unverified",
+            host_note=None,
+            part_of=part_of,
+        )
+
+    items = [
+        item(
+            "E1", "code", "CHAPTER X — SPECIAL PROVISIONS RELATING TO RETRENCHMENT IN CERTAIN ESTABLISHMENTS"
+        ),
+        item("E2", "code", "CHAPTER IX — LAY-OFF, RETRENCHMENT AND CLOSURE"),
+        item("E3", "other", "CHAPTER II — SPECIAL PROVISIONS IN CERTAIN AREAS"),
+    ]
+    kept = prefer_general_provisions(items)
+    assert [i.passage_id for i in kept] == ["E2", "E3"]  # E3 has no general sibling, so it stays
+    assert [i.evidence_id for i in kept] == ["E1", "E2"]  # renumbered

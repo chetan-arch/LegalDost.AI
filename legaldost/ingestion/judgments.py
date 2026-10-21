@@ -101,6 +101,23 @@ class JudgmentDatasets:
         root = ET.fromstring(resp.text)  # noqa: S314 - AWS S3 listing over HTTPS
         return [e.text or "" for e in root.findall("s3:CommonPrefixes/s3:Prefix", _S3_NS)]
 
+    def _list_keys(self, base: str, prefix: str) -> set[str]:
+        """All object keys under ``prefix`` (S3 pages of 1,000)."""
+        keys: set[str] = set()
+        token: str | None = None
+        while True:
+            params = {"list-type": "2", "prefix": prefix, "max-keys": "1000"}
+            if token:
+                params["continuation-token"] = token
+            resp = self.http.get(f"{base}/", params=params)
+            resp.raise_for_status()
+            root = ET.fromstring(resp.text)  # noqa: S314 - AWS S3 listing over HTTPS
+            keys.update(e.text or "" for e in root.findall("s3:Contents/s3:Key", _S3_NS))
+            token_el = root.find("s3:NextContinuationToken", _S3_NS)
+            if token_el is None or not token_el.text:
+                return keys
+            token = token_el.text
+
     # -- Supreme Court -------------------------------------------------------------------------
     def supreme_court(self, year: int) -> Iterator[JudgmentRecord]:
         rows = self._parquet(
@@ -135,8 +152,12 @@ class JudgmentDatasets:
                 f"{HC_BASE}/{bench_prefix}metadata.parquet",
                 self.cache_dir / "hc" / court / str(year) / f"{bench}.parquet",
             )
+            # The metadata's pdf_exists flag is unreliable (all "False" for Karnataka 2024 while
+            # the PDFs are present), so check against the bucket listing instead.
+            pdf_prefix = f"data/pdf/year={year}/court={court}/bench={bench}/"
+            present = {k.rsplit("/", 1)[-1] for k in self._list_keys(HC_BASE, pdf_prefix)}
             for r in rows:
-                if str(r.get("pdf_exists")).lower() == "false" or not r.get("pdf_link"):
+                if not r.get("pdf_link") or str(r["pdf_link"]).split("/")[-1] not in present:
                     continue
                 if HC_SKIP_DISPOSALS.search(str(r.get("disposal_nature") or "")):
                     continue

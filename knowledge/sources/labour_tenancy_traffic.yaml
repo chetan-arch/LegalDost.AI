@@ -1,0 +1,90 @@
+# Employment, tenancy and vehicle-glass sources (added 2026-10-21). India Code returned gateway
+# timeouts again, so copies come from the Ministry of Labour and Employment, PRS Legislative
+# Research and a Gazette reproduction hosted by LiveLaw. None is advocate-reviewed yet.
+#
+#   legaldost ingest manifest knowledge/sources/labour_tenancy_traffic.yaml
+
+name: labour_tenancy_traffic
+description: Labour Codes (wages, industrial relations), the Karnataka Rent Act and the 2020 Rule 100 amendment.
+
+sources:
+  # ---------------------------------------------------------------- employment and labour
+  - source_key: in-code-on-wages-2019
+    title: "The Code on Wages, 2019 (No. 29 of 2019)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (copy hosted by the Ministry of Labour and Employment)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN
+    legal_domains: [employment]
+    identifiers: {act_no: "29 of 2019"}
+    source_url: "https://www.labour.gov.in/static/uploads/2025/06/c328da14bbb15fc4ad571dc33e7a4ab3.pdf"
+    host_note: "Act as enacted, hosted by the Ministry of Labour and Employment; not the Gazette or India Code copy. Later amendments not checked."
+    languages: [en]
+    publication_date: 2019-08-08
+    legal_status: unknown
+    status_note: >-
+      PIB (Ministry of Labour, 21 Nov 2025) states the four Labour Codes were made effective from
+      21 November 2025, replacing the Payment of Wages Act, Minimum Wages Act, Payment of Bonus Act
+      and Equal Remuneration Act; relevant provisions of the old Acts continue during transition.
+      The commencement notification itself is not loaded.
+    fetch_url: "https://www.labour.gov.in/static/uploads/2025/06/c328da14bbb15fc4ad571dc33e7a4ab3.pdf"
+    notes: "Fetched 2026-10-21. Date is the assent date in the text header ([8th August, 2019.])."
+
+  - source_key: in-industrial-relations-code-2020
+    title: "The Industrial Relations Code, 2020 (No. 35 of 2020)"
+    issuing_authority: "Legislative Department, Ministry of Law and Justice (Gazette text reproduced by PRS Legislative Research)"
+    document_type: statute
+    source_category: secondary
+    jurisdiction: IN
+    legal_domains: [employment]
+    identifiers: {act_no: "35 of 2020"}
+    source_url: "https://prsindia.org/files/bills_acts/acts_parliament/2020/Industrial%20Relations%20Code,%202020.pdf"
+    host_note: "Act as enacted, hosted by PRS Legislative Research (non-profit, not a government site). Replace with the India Code copy when reachable."
+    languages: [en]
+    publication_date: 2020-09-28
+    legal_status: unknown
+    status_note: >-
+      PIB states it took effect on 21 November 2025, replacing the Industrial Disputes Act, 1947,
+      the Trade Unions Act, 1926 and the Industrial Employment (Standing Orders) Act, 1946, which
+      still govern earlier disputes and are not loaded.
+    fetch_url: "https://prsindia.org/files/bills_acts/acts_parliament/2020/Industrial%20Relations%20Code,%202020.pdf"
+    notes: "Fetched 2026-10-21. Act number and date taken from the text header."
+
+  # ---------------------------------------------------------------- rent and tenancy
+  - source_key: ka-karnataka-rent-act-1999
+    title: "The Karnataka Rent Act, 1999 (Karnataka Act 34 of 2001)"
+    issuing_authority: "Government of Karnataka (India Code copy)"
+    document_type: statute
+    source_category: primary_official
+    jurisdiction: IN-KA
+    legal_domains: [tenancy]
+    identifiers: {act_no: "34 of 2001"}
+    source_url: "https://www.indiacode.nic.in/bitstream/123456789/7810/1/34_of_2001_e.pdf"
+    host_note: "India Code copy; its header lists amendments by Acts 17 of 2007 and 28 of 2011 (a 2026 amendment is reported and not checked)."
+    languages: [en]
+    legal_status: amended
+    status_note: "Reported in force from 31 December 2001 (Notification RD 24 BHANIVI 2001); not verified from the notification itself."
+    fetch_url: "https://www.indiacode.nic.in/bitstream/123456789/7810/1/34_of_2001_e.pdf"
+    notes: "India Code was returning HTTP 504 on 2026-10-21; retry `legaldost ingest fetch ka-karnataka-rent-act-1999`."
+
+  # ---------------------------------------------------------------- vehicles: window glass
+  - source_key: in-gazette-cmvr-seventh-amendment-2020-gsr-457e
+    title: "Central Motor Vehicles (Seventh Amendment) Rules, 2020 — G.S.R. 457(E), 20 July 2020 (substitutes Rule 100: safety glass and glazing)"
+    issuing_authority: "Ministry of Road Transport and Highways (Gazette of India, Extraordinary; copy hosted by LiveLaw)"
+    document_type: notification
+    source_category: secondary
+    jurisdiction: IN
+    legal_domains: [traffic]
+    identifiers: {gsr: "457(E)", amends: "Central Motor Vehicles Rules, 1989", rule: "100"}
+    source_url: "https://www.livelaw.in/pdf_upload/pdf_upload-378588.pdf"
+    host_note: >-
+      Gazette of India text (Hindi and English) reproduced by LiveLaw, a legal news site; the
+      MoRTH copy returned an HTML page instead of the PDF. Rule 100 was reportedly amended again
+      in 2023 (First Amendment Rules, 2023), which is not loaded.
+    languages: [en, hi]
+    publication_date: 2020-07-20
+    commencement_date: 2021-04-01
+    legal_status: amended
+    status_note: "New Rule 100(1)-(4) applies on and from 1 April 2021 (per its own text); later amendments not checked."
+    fetch_url: "https://www.livelaw.in/pdf_upload/pdf_upload-378588.pdf"
+    notes: "Fetched 2026-10-21. Rule 100(2): windscreen and rear window at least 70% visual transmission; 100(3): side windows at least 50%; 100(4): owner must maintain these."

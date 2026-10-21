@@ -95,6 +95,7 @@ class EvidenceItem(BaseModel):
     host_note: str | None
     flags: list[str] = Field(default_factory=list)
     binding_note: str | None = None
+    part_of: str | None = None  # statute chapter/part heading, e.g. "CHAPTER X — SPECIAL PROVISIONS ..."
 
 
 class EvidencePacket(BaseModel):
