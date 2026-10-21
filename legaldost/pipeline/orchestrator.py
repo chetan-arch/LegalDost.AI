@@ -14,10 +14,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from legaldost.config import Settings
-from legaldost.db.models import AnswerGap, AnswerLog, Conversation
+from legaldost.db.models import AnswerGap, AnswerLog, Conversation, LegalSource
 from legaldost.decision.base import DecisionEngine, EvidenceCandidate, RoutingDecision
 from legaldost.domain.facts import JURISDICTION_NAMES, extract_facts
 from legaldost.domain.registry import (
@@ -324,19 +325,22 @@ class AnswerPipeline:
     ) -> tuple[LegalAnswer, dict[str, Any]]:
         jurisdiction = facts.get("jurisdiction", {}).get("value")
         hints = list(topic.retrieval_terms)
+        anchors: list[str] = []  # derived from this question, not the topic's broad search words
         for (fact, value), words in FACT_SEARCH_HINTS.items():
             if facts.get(fact, {}).get("value") == value:
-                hints += words
+                anchors += words
         for provision in facts.get("cited_provision", {}).get("value", []) or []:
-            hints.append(str(provision))
+            anchors.append(str(provision))
         query_text = question if question == latest else f"{question} {latest}"
-        hints += [h for h in legal_term_hints(query_text, load_legal_terms()) if h not in hints]
+        anchors += legal_term_hints(query_text, load_legal_terms())
+        hints += [h for h in anchors if h not in hints]
         # The catch-all has no topic-specific search terms, so it demands a closer word match.
         spec = QuerySpec(
             text=query_text,
             expansion_terms=hints,
             min_coverage=0.5 if topic.domain == GENERAL_DOMAIN else 0.2,
             require_phrase=topic.domain == GENERAL_DOMAIN,
+            anchor_terms=anchors,
         )
         filters = RetrievalFilters(
             jurisdictions=["IN", jurisdiction] if jurisdiction else ["IN"],
@@ -375,6 +379,18 @@ class AnswerPipeline:
                 f"State-specific rules for {JURISDICTION_NAMES.get(jurisdiction, jurisdiction)} are not loaded; "
                 "only central sources were searched."
             )
+        if topic.domain == GENERAL_DOMAIN and results:
+            # The catch-all has no area of law behind it. Judgments alone (thousands of them, on
+            # every subject) would let it "answer" from rulings that merely share words with the
+            # question, e.g. call-record evidence for "is recording a call legal?". Same rule as
+            # for areas: no law text, no answer.
+            source_ids = {r.source_id for r in results}
+            types = set(
+                self.session.scalars(select(LegalSource.document_type).where(LegalSource.id.in_(source_ids)))
+            )
+            if types <= {"judgment"}:
+                diag["judgments_only"] = True
+                results = []
         if not results:
             summary = t("no_evidence", language, what=topic.label.get(language))
             if topic.risk == "high":

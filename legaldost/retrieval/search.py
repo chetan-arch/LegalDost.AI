@@ -7,6 +7,7 @@ evidence for a legal claim.
 
 from __future__ import annotations
 
+import functools
 import math
 import re
 from collections import Counter
@@ -56,19 +57,24 @@ class QuerySpec:
     # Also require one adjacent word pair from the question (e.g. "phone call") in the passage.
     # Used for the catch-all topic, which has no curated search terms to anchor relevance.
     require_phrase: bool = False
+    # Search terms derived from this question (everyday words mapped to legal terms, facts the
+    # user gave, cited sections), as opposed to a topic's broad search words. Judgments must
+    # match one of these or a phrase from the question: a ruling that merely mentions "salary"
+    # or "employer" is not evidence about an unpaid salary.
+    anchor_terms: list[str] = field(default_factory=list)
 
     def phrases(self) -> set[tuple[str, str]]:
+        """Adjacent word pairs from the question with at least one word that says what it is about.
+
+        Pairs made only of generic legal words, place names, number words or time units ("two
+        months", "months Bengaluru") occur in countless unrelated passages and are left out.
+        """
+        weak = GENERIC_TERMS | _place_stems() | PHRASE_FILLER
         tokens = [stem(t) for t in content_tokens(self.text) if not t.isdigit()]
-        return {
-            (a, b)
-            for a, b in zip(tokens, tokens[1:], strict=False)
-            if a not in GENERIC_TERMS or b not in GENERIC_TERMS
-        }
+        return {(a, b) for a, b in zip(tokens, tokens[1:], strict=False) if a not in weak or b not in weak}
 
     def distinctive_terms(self) -> set[str]:
-        from legaldost.domain.facts import STATE_CODES
-
-        places = {stem(t) for name in STATE_CODES for t in content_tokens(name)}
+        places = _place_stems()
         return {
             stem(t)
             for t in content_tokens(self.text)
@@ -99,7 +105,33 @@ class _Candidate:
     case_key: str = ""  # copies of one judgment (several reporters, re-uploads) share this
 
 
+# Number words and time units: never what a question is about on their own.
+PHRASE_FILLER = {
+    stem(w)
+    for w in (
+        "one two three four five six seven eight nine ten eleven twelve half few several many "
+        "day days week weeks month months year years hour hours time times"
+    ).split()
+}
+
+
+@functools.lru_cache(maxsize=1)
+def _place_stems() -> frozenset[str]:
+    from legaldost.domain.facts import STATE_CODES
+
+    return frozenset(stem(t) for name in STATE_CODES for t in content_tokens(name))
+
+
 _CASE_FILLER = {"and", "anr", "ors", "others", "another", "the", "versus", "vs", "v", "of", "m", "s"}
+
+
+def _anchored(anchor_terms: list[str], seq: list[str], doc: set[str]) -> bool:
+    """A judgment passage is about this question: one question-specific legal phrase verbatim,
+    or two different question-specific single words."""
+    if _phrase_matches(anchor_terms, seq) >= 1:
+        return True
+    singles = {stem(t) for term in anchor_terms if len(words := content_tokens(term)) == 1 for t in words}
+    return len((singles - GENERIC_TERMS) & doc) >= 2
 
 
 def _phrase_matches(terms: list[str], seq: list[str]) -> int:
@@ -159,6 +191,10 @@ class HybridRetriever:
         self.vector_weight = 1.0 if self.semantic else 0.3
         self.min_semantic_similarity = (
             settings.semantic_min_similarity if min_semantic_similarity is None else min_semantic_similarity
+        )
+        # Judgments are long and touch many subjects, so meaning alone must be closer for them.
+        self.min_judgment_similarity = max(
+            self.min_semantic_similarity, settings.judgment_semantic_min_similarity
         )
 
     # -- eligibility ------------------------------------------------------------------------
@@ -222,7 +258,10 @@ class HybridRetriever:
         # Statutes rarely use the user's own words ("sun shade", "windshield"). Two different
         # curated multi-word legal phrases ("safety glazing", "visual transmission of light")
         # appearing verbatim are strong evidence on their own.
-        if _phrase_matches(spec.expansion_terms, seq) >= 2:
+        is_judgment = cand.case_key.startswith("case:")
+        if _phrase_matches(spec.expansion_terms, seq) >= 2 and (
+            not is_judgment or _anchored(spec.anchor_terms, seq, doc)
+        ):
             return True
         if not distinctive:
             return matched_extra >= 2
@@ -233,6 +272,8 @@ class HybridRetriever:
         phrase_hit = bool(spec.phrases() & set(zip(seq, seq[1:], strict=False)))
         if spec.require_phrase:
             return phrase_hit
+        if is_judgment:
+            return phrase_hit or _anchored(spec.anchor_terms, seq, doc)
         # Anchor: a curated topic search term, or a two-word phrase from the question. Scattered
         # common words ("police" ... "fine") are not enough on their own.
         return phrase_hit or matched_extra >= 1
@@ -262,7 +303,17 @@ class HybridRetriever:
         lexical = {pid: s for pid, s in lex_raw.items() if pid in cands and self._relevant(spec, cands[pid])}
         vector = {pid: s for pid, s in vec_raw.items() if pid in cands}
         semantic_only = (
-            {pid for pid, s in vector.items() if s >= self.min_semantic_similarity and pid not in lexical}
+            {
+                pid
+                for pid, s in vector.items()
+                if pid not in lexical
+                and s
+                >= (
+                    self.min_judgment_similarity
+                    if cands[pid].case_key.startswith("case:")
+                    else self.min_semantic_similarity
+                )
+            }
             if self.semantic
             else set()
         )

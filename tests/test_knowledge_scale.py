@@ -216,3 +216,35 @@ def test_special_scope_provision_dropped_when_general_one_present() -> None:
     kept = prefer_general_provisions(items)
     assert [i.passage_id for i in kept] == ["E2", "E3"]  # E3 has no general sibling, so it stays
     assert [i.evidence_id for i in kept] == ["E1", "E2"]  # renumbered
+
+
+def test_judgment_needs_a_question_specific_anchor(session, ingest, tmp_path) -> None:
+    def judgment(key: str, body: bytes) -> None:
+        src = ingest.register(_spec(key, document_type="judgment", legal_domains=["employment"]))
+        ingest.ingest_bytes(src, body, "text/plain")
+
+    reset_caches()
+    judgment(
+        "jdg-accident-salary",
+        b"1. The deceased helper was receiving a salary of Rs 2400 per month from his employer.\n"
+        b"2. The insurer must pay compensation for the accident with interest.\n",
+    )
+    judgment(
+        "jdg-wages-withheld",
+        b"1. The employer withheld payment of wages beyond the time permitted.\n"
+        b"2. The employee's salary for those months must be paid with interest.\n",
+    )
+    session.flush()
+    question = "My employer has not paid my salary for two months. What can I do?"
+    spec = QuerySpec(
+        question,
+        expansion_terms=["employer", "employee", "wages", "payment of wages"],
+        anchor_terms=["wages", "payment of wages"],
+    )
+    retriever = HybridRetriever(session, ingest.embedder, cache_dir=tmp_path / "idx")
+    found = {
+        session.get(LegalSource, r.source_id).source_key
+        for r in retriever.search(spec, RetrievalFilters(domains=["employment"]), limit=10)
+    }
+    assert "jdg-wages-withheld" in found
+    assert "jdg-accident-salary" not in found  # mentions salary and employer, not this question

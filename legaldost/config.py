@@ -81,6 +81,8 @@ class Settings(BaseSettings):
     # With a real semantic model, passages found by meaning alone (no keyword overlap) are kept
     # only above this cosine similarity.
     semantic_min_similarity: float = 0.86
+    # Judgment passages found by meaning alone (no keyword match) must score at least this.
+    judgment_semantic_min_similarity: float = 0.88
 
     # --- Ingestion ----------------------------------------------------------------------------
     ingest_max_file_mb: int = 25

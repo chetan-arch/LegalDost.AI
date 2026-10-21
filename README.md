@@ -206,10 +206,16 @@ How judgments are used:
   from whichever rulings happen to mention salary.
 * The law comes first: up to three evidence slots are kept for Acts, rules and notifications whenever
   they match, and judgments fill the rest.
+* A judgment must match the question itself, not just its area: a two-word phrase from the
+  question, a legal phrase mapped from the user's words ("payment of wages" for "salary not
+  paid"), or two mapped legal terms. A ruling that only mentions "salary" and "employer" is not
+  evidence about an unpaid salary. Judgments found by meaning alone must score at least
+  `JUDGMENT_SEMANTIC_MIN_SIMILARITY` (default 0.88).
 * Each case counts once: copies of the same judgment (different reporters, re-uploads) share a
   single evidence slot, so an old ruling cannot crowd out a newer one on the amended rule.
 * In the catch-all area, when the model's summary cannot be verified against the quotes, the bot
-  says it has no reliable source instead of showing loosely related quotes.
+  says it has no reliable source instead of showing loosely related quotes. It also does so when
+  the only matches are judgments, with no Act, rules or notification among them.
 
 How statute text is used:
 
