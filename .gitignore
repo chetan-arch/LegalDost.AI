@@ -20,3 +20,6 @@ dist/
 # downloaded legal documents (not redistributed in the repo)
 knowledge/sources/files/*
 !knowledge/sources/files/README.txt
+
+# local Claude desktop app settings (dev-server launcher); not part of the app
+.claude/
